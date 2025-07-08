@@ -15,7 +15,15 @@ import (
 )
 
 func CheckAlive(c *gin.Context) {
-	c.Writer.WriteString("Still Alive")
+	err := mcClient.Conn().Flush()
+	if err != nil {
+		c.JSON(http.StatusOK, CheckAliveResponse{
+			Alive:     false,
+			ErrorInfo: fmt.Sprintf("Bot is dead; err = %v", err),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, CheckAliveResponse{Alive: true})
 }
 
 func ProcessExist(c *gin.Context) {
@@ -55,9 +63,7 @@ func ChangeConsolePosition(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ChangeConsolePosResponse{
-		Success: true,
-	})
+	c.JSON(http.StatusOK, ChangeConsolePosResponse{Success: true})
 }
 
 func PlaceNBTBlock(c *gin.Context) {

@@ -10,7 +10,7 @@ import (
 func InitRouter() *gin.Engine {
 	router := gin.Default()
 
-	router.GET("/", CheckAlive)
+	router.GET("/check_alive", CheckAlive)
 	router.GET("/process_exit", ProcessExist)
 	router.GET("/change_console_position", ChangeConsolePosition)
 	router.POST("/place_nbt_block", PlaceNBTBlock)

@@ -5,6 +5,13 @@ const (
 	ResponseErrorTypeRuntimeError
 )
 
+// ------------------------- CheckAlive -------------------------
+
+type CheckAliveResponse struct {
+	Alive     bool   `json:"alive"`
+	ErrorInfo string `json:"error_info"`
+}
+
 // ------------------------- ChangeConsolePosition -------------------------
 
 type ChangeConsolePosRequest struct {
