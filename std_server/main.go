@@ -33,6 +33,7 @@ var (
 	authServerAddress    *string
 	authServerToken      *string
 	standardServerPort   *int
+	consoleDimensionID   *int
 	consoleCenterX       *int
 	consoleCenterY       *int
 	consoleCenterZ       *int
@@ -44,6 +45,7 @@ func init() {
 	authServerAddress = flag.String("asa", "", "The auth server address.")
 	authServerToken = flag.String("ast", "", "The auth server token.")
 	standardServerPort = flag.Int("ssp", 0, "The server port to running.")
+	consoleDimensionID = flag.Int("cdi", 0, "The dimension ID of the console. (e.g. overworld = 0, nether = 1, end = 2, dmT = T, etc.)")
 	consoleCenterX = flag.Int("ccx", 0, "The X position of the center of the console.")
 	consoleCenterY = flag.Int("ccy", 0, "The Y position of the center of the console.")
 	consoleCenterZ = flag.Int("ccz", 0, "The Z position of the center of the console.")
@@ -87,7 +89,7 @@ func main() {
 
 	console, err = nbt_console.NewConsole(
 		gameInterface,
-		0,
+		uint8(*consoleDimensionID),
 		protocol.BlockPos{
 			int32(*consoleCenterX),
 			int32(*consoleCenterY),
