@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/nbt"
+	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/utils"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,48 @@ func ProcessExist(c *gin.Context) {
 		time.Sleep(time.Second)
 		os.Exit(0)
 	}()
+}
+
+func ChangeConsolePosition(c *gin.Context) {
+	var request ChangeConsolePosRequest
+
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
+		})
+		return
+	}
+
+	console := wrapper.Console()
+	if console == nil {
+		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+			Success:   false,
+			ErrorInfo: "Console not init [wrapper.Console() = nil]",
+		})
+		return
+	}
+
+	err = console.ChangeConsolePosition(
+		request.DimensionID,
+		protocol.BlockPos{
+			request.CenterX,
+			request.CenterY,
+			request.CenterZ,
+		},
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Change console position failed; err = %v", err),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, ChangeConsolePosResponse{
+		Success: true,
+	})
 }
 
 func PlaceNBTBlock(c *gin.Context) {

@@ -39,6 +39,16 @@ func NewNBTAssigner(
 	}
 }
 
+// Console 返回 NBT Assigner 底层的操作台
+func (n *NBTAssigner) Console() *nbt_console.Console {
+	return n.console
+}
+
+// Console 返回 NBT Assigner 底层的缓存命中系统
+func (n *NBTAssigner) Cache() *nbt_cache.NBTCacheSystem {
+	return n.cache
+}
+
 // PlaceNBTBlock 试图制作一个新的 NBT 方块，
 // 制作位置是在操作台的中心方块处。
 //
