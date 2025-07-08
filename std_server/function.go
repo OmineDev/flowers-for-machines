@@ -362,3 +362,181 @@ func PlaceLargeChest(c *gin.Context) {
 		StructureName:     utils.MakeUUIDSafeString(finalStructure),
 	})
 }
+
+func PlaceWaterloggedBlock(c *gin.Context) {
+	mu.Lock()
+	defer mu.Unlock()
+	var request PlaceWaterloggedBlockRequest
+
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
+		})
+		return
+	}
+
+	blockStates := utils.ParseBlockStatesString(request.NBTBlockStatesString)
+	offsetBlockStates := utils.ParseBlockStatesString(request.OffsetNBTBlockStatesString)
+	center := console.Center()
+	offset := [3]int32{request.NBTStructureOffsetX, 0, request.NBTStructureOffsetZ}
+
+	// Step 1: Place NBT block first
+	if request.NBTStructureExist {
+		uniqueID, err := uuid.Parse(request.NBTStructureUniqueID)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Parse NBT structure unique ID failed; err = %v", err),
+			})
+			return
+		}
+
+		err = gameInterface.StructureBackup().RevertStructure(uniqueID, console.Center())
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Load NBT structure failed; err = %v", err),
+			})
+			return
+		}
+
+		console.UseHelperBlock(nbt_console.RequesterUser, nbt_console.ConsoleIndexCenterBlock, block_helper.ComplexBlock{
+			KnownStates: true,
+			Name:        request.NBTBlockName,
+			States:      blockStates,
+		})
+		if offset != [3]int32{0, 0, 0} {
+			nearBlock := console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, offset)
+			*nearBlock = block_helper.ComplexBlock{
+				KnownStates: true,
+				Name:        request.NBTBlockName,
+				States:      offsetBlockStates,
+			}
+		}
+	} else {
+		err = gameInterface.SetBlock().SetBlock(console.Center(), request.NBTBlockName, request.NBTBlockStatesString)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Place NBT block failed; err = %v", err),
+			})
+			return
+		}
+		console.UseHelperBlock(nbt_console.RequesterUser, nbt_console.ConsoleIndexCenterBlock, block_helper.ComplexBlock{
+			KnownStates: true,
+			Name:        request.NBTBlockName,
+			States:      blockStates,
+		})
+	}
+
+	// Step 2.1: Place water
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"fill %d %d %d %d %d %d %s %s",
+			center[0]+request.WaterStartOffsetX, center[1]+1, center[2]+request.WaterStartOffsetZ,
+			center[0]+request.WaterEndOffsetX, center[1]+1, center[2]+request.WaterEndOffsetZ,
+			request.WaterBlockName, request.WaterBlockStatesString,
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Place water failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 2.2: Wait water place down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes failed (stage 1); err = %v", err),
+		})
+		return
+	}
+
+	// Step 3.1: Clone loaded blocks to the water
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"clone %d %d %d %d %d %d %d %d %d",
+			center[0], center[1], center[2],
+			center[0]+offset[0], center[1], center[2]+offset[2],
+			center[0], center[1]+1, center[2],
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Clone commands failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 3.2: Wait clone down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes failed (stage 2); err = %v", err),
+		})
+		return
+	}
+	nearBlock := console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.ComplexBlock{
+		Name:   request.NBTBlockName,
+		States: blockStates,
+	}
+
+	// Step 4: Get final structure (that included water logged NBT block)
+	finalStructure, err := gameInterface.StructureBackup().BackupOffset(
+		protocol.BlockPos{center[0], center[1] + 1, center[2]},
+		offset,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Get final structure failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 5.1: Clean water logged block
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"fill %d %d %d %d %d %d air",
+			center[0], center[1]+1, center[2],
+			center[0]+offset[0], center[1]+1, center[2]+offset[2],
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Clean water logged block failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 5.2: Wait clean down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 3); err = %v", err),
+		})
+		return
+	}
+	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.Air{}
+
+	c.JSON(http.StatusOK, PlaceWaterloggedBlockResponse{
+		Success:           true,
+		StructureUniqueID: finalStructure.String(),
+		StructureName:     utils.MakeUUIDSafeString(finalStructure),
+	})
+}
