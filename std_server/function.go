@@ -39,16 +39,7 @@ func ChangeConsolePosition(c *gin.Context) {
 		return
 	}
 
-	console := wrapper.Console()
-	if console == nil {
-		c.JSON(http.StatusOK, ChangeConsolePosResponse{
-			Success:   false,
-			ErrorInfo: "Console not init [wrapper.Console() = nil]",
-		})
-		return
-	}
-
-	err = console.ChangeConsolePosition(
+	err = wrapper.ChangeConsolePosition(
 		request.DimensionID,
 		protocol.BlockPos{
 			request.CenterX,
