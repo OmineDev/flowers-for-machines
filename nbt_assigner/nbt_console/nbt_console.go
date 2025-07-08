@@ -18,7 +18,7 @@ type Console struct {
 	// api 是与租赁服进行交互的若干接口
 	api *game_interface.GameInterface
 
-	// dimension 是操作台所在的维度
+	// dimension 是操作台所在的维度 ID
 	dimension uint8
 	// center 是操作台的中心位置
 	center protocol.BlockPos
