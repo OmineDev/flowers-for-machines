@@ -87,6 +87,7 @@ func main() {
 
 	console, err = nbt_console.NewConsole(
 		gameInterface,
+		0,
 		protocol.BlockPos{
 			int32(*consoleCenterX),
 			int32(*consoleCenterY),

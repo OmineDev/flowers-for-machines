@@ -31,7 +31,7 @@ func SystemTestingLogin() {
 	resources = resources_control.NewResourcesControl(c)
 	api = game_interface.NewGameInterface(resources)
 
-	console, err = nbt_console.NewConsole(api, [3]int32{23, 12, -21})
+	console, err = nbt_console.NewConsole(api, 0, [3]int32{23, 12, -21})
 	if err != nil {
 		panic(fmt.Sprintf("SystemTestingSetblock: Failed on init new console, and the err is %v", err))
 	}

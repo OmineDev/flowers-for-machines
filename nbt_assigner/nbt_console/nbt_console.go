@@ -9,6 +9,7 @@ import (
 	"github.com/OmineDev/flowers-for-machines/game_control/game_interface"
 	"github.com/OmineDev/flowers-for-machines/game_control/resources_control"
 	"github.com/OmineDev/flowers-for-machines/nbt_assigner/block_helper"
+	"github.com/OmineDev/flowers-for-machines/utils"
 )
 
 // Console 是机器人导入 NBT 方块所使用的操作台。
@@ -64,41 +65,13 @@ type Console struct {
 // 心方块处。在传送完成后，NewConsole 将试图初始化操
 // 作台的地板方块。
 //
-// NewConsole 的调用者有责任确保操作台位于主世界，
-// 并且以操作台中心方块为中心处的 11*5*11 的区域全
-// 为空气且没有任何实体
-func NewConsole(api *game_interface.GameInterface, center protocol.BlockPos) (result *Console, err error) {
-	c := &Console{
-		api:                  api,
-		center:               center,
-		position:             protocol.BlockPos{},
-		currentHotBar:        DefaultHotbarSlot,
-		airSlotInInventory:   [36]bool{},
-		helperBlocks:         [9]*block_helper.BlockHelper{},
-		nearBlocks:           [9][6]*block_helper.BlockHelper{},
-		inventoryUseCallback: nil,
-		blocksUseCallback:    nil,
-	}
+// NewConsole 的调用者有责任确保操作台位于 dimensionID
+// 所指示的维度上，并且以操作台中心方块为中心处的 11*5*11
+// 的区域全为空气且没有任何实体
+func NewConsole(api *game_interface.GameInterface, dimensionID uint8, center protocol.BlockPos) (result *Console, err error) {
+	c := &Console{api: api}
 
-	deltaX := int(math.Abs(float64(center[0])))
-	deltaY := int(math.Abs(float64(center[1])))
-	deltaZ := int(math.Abs(float64(center[2])))
-	if deltaX*deltaX+deltaY*deltaY+deltaZ*deltaZ < 900 {
-		return nil, fmt.Errorf("NewConsole: The bot can not appear around position (0,0,0) and it must be at least 30 blocks away from here")
-	}
-
-	for index := range 9 {
-		var airBlock block_helper.BlockHelper = block_helper.Air{}
-		c.helperBlocks[index] = &airBlock
-	}
-	for index := range 9 {
-		for idx := range 6 {
-			var airBlock block_helper.BlockHelper = block_helper.Air{}
-			c.nearBlocks[index][idx] = &airBlock
-		}
-	}
-
-	err = c.initConsole()
+	err = c.initConsole(dimensionID, center)
 	if err != nil {
 		return nil, fmt.Errorf("NewConsole: %v", err)
 	}
@@ -106,10 +79,47 @@ func NewConsole(api *game_interface.GameInterface, center protocol.BlockPos) (re
 	return c, nil
 }
 
+// ChangeConsolePosition 切换操作台的位置。
+//
+// dimensionID 是新位置所在维度的 ID，
+// center 是新位置的方块坐标。
+//
+// 如果返回了错误，则在下次成功调用此函数前，
+// 操作台都不应该被使用，否则其他操作的结果
+// 将会是未定义的
+func (c *Console) ChangeConsolePosition(dimensionID uint8, center protocol.BlockPos) error {
+	err := c.initConsole(dimensionID, center)
+	if err != nil {
+		return fmt.Errorf("ChangeConsolePosition: %v", err)
+	}
+	return nil
+}
+
 // initConsole 初始化操作台。
 // 它是一个内部实现细节，不应被其他人所使用
-func (c *Console) initConsole() error {
+func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error {
 	api := c.api.Commands()
+
+	// Check center
+	deltaX := int(math.Abs(float64(center[0])))
+	deltaY := int(math.Abs(float64(center[1])))
+	deltaZ := int(math.Abs(float64(center[2])))
+	if deltaX*deltaX+deltaY*deltaY+deltaZ*deltaZ < 900 {
+		return fmt.Errorf("initConsole: The bot can not appear around position (0,0,0) and it must be at least 30 blocks away from here")
+	}
+
+	// Reflush console info
+	*c = Console{
+		api:                  c.api,
+		center:               center,
+		position:             center,
+		currentHotBar:        DefaultHotbarSlot,
+		airSlotInInventory:   [36]bool{},
+		helperBlocks:         [9]*block_helper.BlockHelper{},
+		nearBlocks:           [9][6]*block_helper.BlockHelper{},
+		inventoryUseCallback: c.inventoryUseCallback,
+		blocksUseCallback:    c.blocksUseCallback,
+	}
 
 	// Change gamemode and hotbar slot
 	err := api.SendSettingsCommand("gamemode 1", true)
@@ -120,14 +130,14 @@ func (c *Console) initConsole() error {
 	if err != nil {
 		return fmt.Errorf("initConsole: %v", err)
 	}
-	err = c.api.BotClick().ChangeSelectedHotbarSlot(DefaultHotbarSlot)
+	err = c.api.BotClick().ChangeSelectedHotbarSlot(c.currentHotBar)
 	if err != nil {
 		return fmt.Errorf("initConsole: %v", err)
 	}
 
 	// Teleport to target area
 	err = api.SendSettingsCommand(
-		fmt.Sprintf("execute in overworld run tp %d %d %d", c.center[0], c.center[1], c.center[2]),
+		fmt.Sprintf("execute in %s run tp %d %d %d", utils.DimensionNameByID(dimensionID), c.center[0], c.center[1], c.center[2]),
 		true,
 	)
 	if err != nil {
@@ -150,7 +160,6 @@ func (c *Console) initConsole() error {
 		}
 
 		if resp.SuccessCount > 0 {
-			c.position = c.center
 			break
 		}
 
@@ -193,7 +202,17 @@ func (c *Console) initConsole() error {
 		}
 	}
 
-	// Sync floor blocks to underlying
+	// Sync console block info
+	for index := range 9 {
+		var airBlock block_helper.BlockHelper = block_helper.Air{}
+		c.helperBlocks[index] = &airBlock
+	}
+	for index := range 9 {
+		for idx := range 6 {
+			var airBlock block_helper.BlockHelper = block_helper.Air{}
+			c.nearBlocks[index][idx] = &airBlock
+		}
+	}
 	for index := range 9 {
 		var floorBlock block_helper.BlockHelper = block_helper.NearBlock{
 			Name: BaseBackground,
