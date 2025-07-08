@@ -318,7 +318,7 @@ func PlaceLargeChest(c *gin.Context) {
 		States:      chestBlockStates,
 	}
 
-	// Step 7.1: Get final structure (that included a large chest)
+	// Step 7: Get final structure (that included a large chest)
 	finalStructure, err := gameInterface.StructureBackup().BackupOffset(pairleadPos, [3]int32{1, 0, 0})
 	if err != nil {
 		c.JSON(http.StatusOK, PlaceLargeChestResponse{
