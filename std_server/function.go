@@ -349,7 +349,7 @@ func PlaceLargeChest(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, PlaceLargeChestResponse{
 			Success:   false,
-			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 1); err = %v", err),
+			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 3); err = %v", err),
 		})
 		return
 	}
