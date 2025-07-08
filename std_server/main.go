@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	mu            sync.Mutex
+	mu            *sync.Mutex
 	mcClient      *client.Client
 	resources     *resources_control.Resources
 	gameInterface *game_interface.GameInterface
@@ -62,6 +62,8 @@ func init() {
 	if *standardServerPort == 0 {
 		log.Fatalln("Please provide the server port to running.\n\te.g. -ssp=0")
 	}
+
+	mu = new(sync.Mutex)
 }
 
 func main() {
