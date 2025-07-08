@@ -9,7 +9,10 @@ import (
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/nbt"
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
+	"github.com/OmineDev/flowers-for-machines/nbt_assigner/block_helper"
+	"github.com/OmineDev/flowers-for-machines/nbt_assigner/nbt_console"
 	"github.com/OmineDev/flowers-for-machines/utils"
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,14 +48,6 @@ func ChangeConsolePosition(c *gin.Context) {
 		c.JSON(http.StatusOK, ChangeConsolePosResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
-		})
-		return
-	}
-
-	if console == nil {
-		c.JSON(http.StatusOK, ChangeConsolePosResponse{
-			Success:   false,
-			ErrorInfo: "Console is not init (console = nil)",
 		})
 		return
 	}
@@ -134,5 +129,236 @@ func PlaceNBTBlock(c *gin.Context) {
 		OffsetX:           offset.X(),
 		OffsetY:           offset.Y(),
 		OffsetZ:           offset.Z(),
+	})
+}
+
+func PlaceLargeChest(c *gin.Context) {
+	mu.Lock()
+	defer mu.Unlock()
+	var request PlaceLargeChestRequest
+
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
+		})
+		return
+	}
+
+	// Step 1: Prepare
+	chestBlockStates := utils.ParseBlockStatesString(request.BlockStatesString)
+	center := console.Center()
+	pairleadPos := protocol.BlockPos{
+		center[0], center[1] + 1, center[2],
+	}
+	pairedPos := protocol.BlockPos{
+		center[0] + 1, center[1] + 1, center[2],
+	}
+
+	// Step 2.1: Place pairlead chest
+	if !request.PairleadChestStructureExist {
+		err = gameInterface.SetBlock().SetBlock(pairleadPos, request.BlockName, request.BlockStatesString)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Place pairlead chest failed; err = %v", err),
+			})
+			return
+		}
+	} else {
+		uniqueID, err := uuid.Parse(request.PairleadChestUniqueID)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Parse structure unique ID of pairlead chest failed; err = %v", err),
+			})
+			return
+		}
+		err = gameInterface.StructureBackup().RevertStructure(uniqueID, pairleadPos)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Revert structure for pairlead chest failed; err = %v", err),
+			})
+			return
+		}
+	}
+	nearBlock := console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.ComplexBlock{
+		KnownStates: true,
+		Name:        request.BlockName,
+		States:      chestBlockStates,
+	}
+
+	// Step 2.2: Place paired chest
+	if !request.PairedChestStructureExist {
+		err = gameInterface.SetBlock().SetBlock(pairedPos, request.BlockName, request.BlockStatesString)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Place paired chest failed; err = %v", err),
+			})
+			return
+		}
+	} else {
+		uniqueID, err := uuid.Parse(request.PairedChestUniqueID)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Parse structure unique ID of paired chest failed; err = %v", err),
+			})
+			return
+		}
+		err = gameInterface.StructureBackup().RevertStructure(uniqueID, pairedPos)
+		if err != nil {
+			c.JSON(http.StatusOK, PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: fmt.Sprintf("Revert structure for paired chest failed; err = %v", err),
+			})
+			return
+		}
+	}
+
+	// Step 3: Backup loaded chests
+	tempStructure, err := gameInterface.StructureBackup().BackupOffset(pairleadPos, [3]int32{1, 0, 0})
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Backup temp structure failed; err = %v", err),
+		})
+		return
+	}
+	defer gameInterface.StructureBackup().DeleteStructure(tempStructure)
+
+	// Step 4.1: Clean loaded chests
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"fill %d %d %d %d %d %d air",
+			pairleadPos[0], pairleadPos[1], pairleadPos[2],
+			pairedPos[0], pairedPos[1], pairedPos[2],
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Clean loaded chest failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 4.2: Wait clean down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 1); err = %v", err),
+		})
+		return
+	}
+	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.Air{}
+
+	// Step 5.1: Revert loaded chests on console center
+	err = gameInterface.StructureBackup().RevertStructure(tempStructure, console.Center())
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Revert temp structure failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 5.2: Sync changes to console
+	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{1, 0, 0})
+	console.UseHelperBlock(nbt_console.RequesterUser, nbt_console.ConsoleIndexCenterBlock, block_helper.ComplexBlock{
+		KnownStates: true,
+		Name:        request.BlockName,
+		States:      chestBlockStates,
+	})
+	*nearBlock = block_helper.ComplexBlock{
+		KnownStates: true,
+		Name:        request.BlockName,
+		States:      chestBlockStates,
+	}
+
+	// Step 6.1: Clone revert structures to ~ ~1 ~
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"clone %d %d %d %d %d %d %d %d %d",
+			center[0], center[1], center[2],
+			center[0]+1, center[1], center[2],
+			center[0], center[1]+1, center[2],
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Clone commands failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 6.2: Wait clone down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 2); err = %v", err),
+		})
+		return
+	}
+	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.ComplexBlock{
+		KnownStates: true,
+		Name:        request.BlockName,
+		States:      chestBlockStates,
+	}
+
+	// Step 7.1: Get final structure (that included a large chest)
+	finalStructure, err := gameInterface.StructureBackup().BackupOffset(pairleadPos, [3]int32{1, 0, 0})
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Get final structure failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 8.1: Clean loaded large chest
+	err = gameInterface.Commands().SendSettingsCommand(
+		fmt.Sprintf(
+			"fill %d %d %d %d %d %d air",
+			pairleadPos[0], pairleadPos[1], pairleadPos[2],
+			pairedPos[0], pairedPos[1], pairedPos[2],
+		),
+		true,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Clean loaded chest failed; err = %v", err),
+		})
+		return
+	}
+
+	// Step 8.2: Wait clean down
+	err = gameInterface.Commands().AwaitChangesGeneral()
+	if err != nil {
+		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 1); err = %v", err),
+		})
+		return
+	}
+	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
+	*nearBlock = block_helper.Air{}
+
+	c.JSON(http.StatusOK, PlaceLargeChestResponse{
+		Success:           true,
+		StructureUniqueID: finalStructure.String(),
+		StructureName:     utils.MakeUUIDSafeString(finalStructure),
 	})
 }
