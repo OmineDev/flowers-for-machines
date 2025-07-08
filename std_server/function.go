@@ -30,6 +30,7 @@ func CheckAlive(c *gin.Context) {
 }
 
 func ProcessExist(c *gin.Context) {
+	mu.Lock()
 	_, _ = gameInterface.Commands().SendWSCommandWithResp("deop @s")
 	_ = mcClient.Conn().Close()
 	go func() {
