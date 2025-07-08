@@ -18,6 +18,8 @@ type Console struct {
 	// api 是与租赁服进行交互的若干接口
 	api *game_interface.GameInterface
 
+	// dimension 是操作台所在的维度
+	dimension uint8
 	// center 是操作台的中心位置
 	center protocol.BlockPos
 	// position 是机器人目前所在的方块位置
@@ -95,6 +97,7 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 	// Reflush console info
 	*c = Console{
 		api:                  c.api,
+		dimension:            dimensionID,
 		center:               center,
 		position:             center,
 		currentHotBar:        DefaultHotbarSlot,

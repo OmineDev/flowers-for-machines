@@ -15,6 +15,11 @@ func (c *Console) API() *game_interface.GameInterface {
 	return c.api
 }
 
+// Dimension 返回操作台所在的维度 ID
+func (c Console) Dimension() uint8 {
+	return c.dimension
+}
+
 // Center 返回操作台中心处的方块坐标
 func (c Console) Center() protocol.BlockPos {
 	return c.center
