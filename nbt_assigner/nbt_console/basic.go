@@ -55,3 +55,19 @@ func (c *Console) ChangeAndUpdateHotbarSlotID(slotID resources_control.SlotID) e
 	c.currentHotBar = slotID
 	return nil
 }
+
+// ChangeConsolePosition 切换操作台的位置。
+//
+// dimensionID 是新位置所在维度的 ID，
+// center 是新位置的方块坐标。
+//
+// 如果返回了错误，则在下次成功调用此函数前，
+// 操作台都不应该被使用，否则其他操作的结果
+// 将会是未定义的
+func (c *Console) ChangeConsolePosition(dimensionID uint8, center protocol.BlockPos) error {
+	err := c.initConsole(dimensionID, center)
+	if err != nil {
+		return fmt.Errorf("ChangeConsolePosition: %v", err)
+	}
+	return nil
+}
