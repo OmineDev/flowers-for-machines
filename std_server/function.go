@@ -36,6 +36,8 @@ func ProcessExist(c *gin.Context) {
 }
 
 func ChangeConsolePosition(c *gin.Context) {
+	mu.Lock()
+	defer mu.Unlock()
 	var request ChangeConsolePosRequest
 
 	err := c.BindJSON(&request)
@@ -47,7 +49,15 @@ func ChangeConsolePosition(c *gin.Context) {
 		return
 	}
 
-	err = wrapper.ChangeConsolePosition(
+	if console == nil {
+		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+			Success:   false,
+			ErrorInfo: "Console is not init (console = nil)",
+		})
+		return
+	}
+
+	err = console.ChangeConsolePosition(
 		request.DimensionID,
 		protocol.BlockPos{
 			request.CenterX,
@@ -67,6 +77,9 @@ func ChangeConsolePosition(c *gin.Context) {
 }
 
 func PlaceNBTBlock(c *gin.Context) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	var request PlaceNBTBlockRequest
 	var blockNBT map[string]any
 

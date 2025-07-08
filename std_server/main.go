@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/OmineDev/flowers-for-machines/client"
@@ -19,6 +20,7 @@ import (
 )
 
 var (
+	mu            sync.Mutex
 	mcClient      *client.Client
 	resources     *resources_control.Resources
 	gameInterface *game_interface.GameInterface

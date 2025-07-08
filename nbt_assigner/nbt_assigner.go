@@ -39,30 +39,6 @@ func NewNBTAssigner(
 	}
 }
 
-// ChangeConsolePosition 切换操作台的位置。
-//
-// dimensionID 是新位置所在维度的 ID，
-// center 是新位置的方块坐标。
-//
-// 如果返回了错误，则在下次成功调用此函数前，
-// 操作台都不应该被使用，否则其他操作的结果
-// 将会是未定义的
-func (n *NBTAssigner) ChangeConsolePosition(dimensionID uint8, center protocol.BlockPos) error {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	if n.console == nil {
-		return fmt.Errorf("ChangeConsolePosition: Console not init [n.console = nil]")
-	}
-
-	err := n.console.ChangeConsolePosition(dimensionID, center)
-	if err != nil {
-		return fmt.Errorf("ChangeConsolePosition: %v", err)
-	}
-
-	return nil
-}
-
 // PlaceNBTBlock 试图制作一个新的 NBT 方块，
 // 制作位置是在操作台的中心方块处。
 //
