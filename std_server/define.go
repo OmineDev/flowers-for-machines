@@ -59,6 +59,9 @@ type PlaceLargeChestRequest struct {
 
 	PairedChestStructureExist bool   `json:"paired_chest_structure_exist"`
 	PairedChestUniqueID       string `json:"paired_chest_unique_id"`
+
+	PairedChestOffsetX int32 `json:"paired_chest_offset_x"`
+	PairedChestOffsetZ int32 `json:"paired_chest_offset_z"`
 }
 
 type PlaceLargeChestResponse struct {
