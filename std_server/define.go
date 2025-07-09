@@ -71,33 +71,3 @@ type PlaceLargeChestResponse struct {
 	StructureUniqueID string `json:"structure_unique_id"`
 	StructureName     string `json:"structure_name"`
 }
-
-// ------------------------- PlaceWaterloggedBlock -------------------------
-
-type PlaceWaterloggedBlockRequest struct {
-	NBTBlockName               string `json:"nbt_block_name"`
-	NBTBlockStatesString       string `json:"nbt_block_states_string"`
-	OffsetNBTBlockStatesString string `json:"offset_nbt_block_states_string"`
-
-	WaterBlockName         string `json:"water_block_name"`
-	WaterBlockStatesString string `json:"water_block_states_string"`
-	WaterStartOffsetX      int32  `json:"water_start_offset_x"`
-	WaterStartOffsetZ      int32  `json:"water_start_offset_z"`
-	WaterEndOffsetX        int32  `json:"water_end_offset_x"`
-	WaterEndOffsetZ        int32  `json:"water_end_offset_z"`
-
-	NBTStructureExist    bool   `json:"nbt_structure_exist"`
-	NBTStructureUniqueID string `json:"nbt_structure_unique_id"`
-	NBTStructureOffsetX  int32  `json:"nbt_structure_offset_x"`
-	NBTStructureOffsetZ  int32  `json:"nbt_structure_offset_z"`
-}
-
-type PlaceWaterloggedBlockResponse struct {
-	Success   bool   `json:"success"`
-	ErrorInfo string `json:"error_info"`
-
-	StructureUniqueID string `json:"structure_unique_id"`
-	StructureName     string `json:"structure_name"`
-}
-
-// ------------------------- End -------------------------
