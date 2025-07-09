@@ -1,0 +1,64 @@
+name: Build Standard Server
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "version"
+  workflow_dispatch: {}
+
+jobs:
+  Builder:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: Check Should Build Standard Server
+      id: test_should_build_standard_server
+      run: |
+        cp .github/workflows/test_should_build_standard_server.sh ./
+        sh test_should_build_standard_server.sh
+        rm -rf test_should_build_standard_server.sh
+      
+    - name: Build
+      if: steps.test_should_build_standard_server.outputs.result == 'true'
+      run: |
+        mkdir release
+        cd cmd/recover
+        android_arm64="GOOS=android GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_android_arm64"
+        echo $android_arm64 && eval $android_arm64
+        linux_amd64="GOOS=linux GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_linux_amd64"
+        echo $linux_amd64 && eval $linux_amd64
+        linux_arm64="GOOS=linux GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_linux_arm64"
+        echo $linux_arm64 && eval $linux_arm64
+        macos_amd64="GOOS=darwin GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_macos_amd64"
+        echo $macos_amd64 && eval $macos_amd64
+        macos_arm64="GOOS=darwin GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_macos_arm64"
+        echo $macos_arm64 && eval $macos_arm64
+        windows_amd64="GOOS=windows GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_windows_amd64.exe"
+        echo $windows_amd64 && eval $windows_amd64
+        windows_x86="GOOS=windows GOARCH=386 go build -ldflags \"-s -w\" -o ../../release/standard-server_windows_x86.exe"
+        echo $windows_x86 && eval $windows_x86
+    
+    - name: Version Getter
+      if: steps.test_should_build_standard_server.outputs.result == 'true'
+      id: get_version
+      run: |
+        echo "name=v$(awk 'NR==1' version)" >> $GITHUB_OUTPUT
+      
+    - name: Commit Name Getter
+      if: steps.test_should_build_standard_server.outputs.result == 'true'
+      id: get_commit_title
+      run: |
+        TITLE=$(git log -1 --pretty=%s)
+        echo "title=$TITLE" >> $GITHUB_OUTPUT
+        
+    - name: Release
+      if: steps.test_should_build_standard_server.outputs.result == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+          tag_name: ${{ steps.get_version.outputs.name }}
+          body: ${{ steps.get_commit_title.outputs.title }}
+          files: ./release/*
