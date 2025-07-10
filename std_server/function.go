@@ -393,7 +393,7 @@ func GetNBTBlockHash(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, GetNBTBlockHashResponse{
-		Success: hash == 0,
+		Success: true,
 		Hash:    hash,
 	})
 }
