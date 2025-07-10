@@ -16,6 +16,7 @@ func InitRouter() *gin.Engine {
 	router.POST("/change_console_position", ChangeConsolePosition)
 	router.POST("/place_nbt_block", PlaceNBTBlock)
 	router.POST("/place_large_chest", PlaceLargeChest)
+	router.POST("/get_nbt_block_hash", GetNBTBlockHash)
 
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)

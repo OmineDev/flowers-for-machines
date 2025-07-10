@@ -1,10 +1,5 @@
 package main
 
-const (
-	ResponseErrorTypeParseError = iota
-	ResponseErrorTypeRuntimeError
-)
-
 // ------------------------- CheckAlive -------------------------
 
 type CheckAliveResponse struct {
@@ -27,6 +22,11 @@ type ChangeConsolePosResponse struct {
 }
 
 // ------------------------- PlaceNBTBlock -------------------------
+
+const (
+	ResponseErrorTypeParseError = iota
+	ResponseErrorTypeRuntimeError
+)
 
 type PlaceNBTBlockRequest struct {
 	BlockName            string `json:"block_name"`
@@ -70,4 +70,25 @@ type PlaceLargeChestResponse struct {
 
 	StructureUniqueID string `json:"structure_unique_id"`
 	StructureName     string `json:"structure_name"`
+}
+
+// ------------------------- GetNBTBlockHash -------------------------
+
+const (
+	RequestTypeFullHash = iota
+	RequestTypeNBTHash
+	RequestTypeContainerSetHash
+)
+
+type GetNBTBlockHashRequest struct {
+	RequestType          uint8  `json:"request_type"`
+	BlockName            string `json:"block_name"`
+	BlockStatesString    string `json:"block_states_string"`
+	BlockNBTBase64String string `json:"block_nbt_base64_string"`
+}
+
+type GetNBTBlockHashResponse struct {
+	Success   bool   `json:"success"`
+	ErrorInfo string `json:"error_info"`
+	Hash      uint64 `json:"hash"`
 }

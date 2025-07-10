@@ -11,6 +11,8 @@ import (
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/nbt_assigner/block_helper"
 	"github.com/OmineDev/flowers-for-machines/nbt_assigner/nbt_console"
+	nbt_hash "github.com/OmineDev/flowers-for-machines/nbt_parser/hash"
+	nbt_parser_interface "github.com/OmineDev/flowers-for-machines/nbt_parser/interface"
 	"github.com/OmineDev/flowers-for-machines/utils"
 	"github.com/google/uuid"
 
@@ -327,5 +329,71 @@ func PlaceLargeChest(c *gin.Context) {
 		Success:           true,
 		StructureUniqueID: finalStructure.String(),
 		StructureName:     utils.MakeUUIDSafeString(finalStructure),
+	})
+}
+
+func GetNBTBlockHash(c *gin.Context) {
+	var request GetNBTBlockHashRequest
+	var blockNBT map[string]any
+	var hash uint64
+
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
+		})
+		return
+	}
+
+	blockNBTBytes, err := base64.StdEncoding.DecodeString(request.BlockNBTBase64String)
+	if err != nil {
+		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse block NBT base64 string; err = %v", err),
+		})
+		return
+	}
+	err = nbt.UnmarshalEncoding(blockNBTBytes, &blockNBT, nbt.LittleEndian)
+	if err != nil {
+		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Block NBT bytes is broken; err = %v", err),
+		})
+		return
+	}
+
+	block, err := nbt_parser_interface.ParseBlock(
+		gameInterface.Resources().ConstantPacket().ItemCanGetByCommand,
+		request.BlockName,
+		utils.ParseBlockStatesString(request.BlockStatesString),
+		blockNBT,
+	)
+	if err != nil {
+		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse target block; err = %v", err),
+		})
+		return
+	}
+
+	switch request.RequestType {
+	case RequestTypeFullHash:
+		hash = nbt_hash.NBTBlockFullHash(block)
+	case RequestTypeNBTHash:
+		hash = nbt_hash.NBTBlockNBTHash(block)
+	case RequestTypeContainerSetHash:
+		hash = nbt_hash.ContainerSetHash(block)
+	default:
+		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Unknown request type %d is found", request.RequestType),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		Success: hash == 0,
+		Hash:    hash,
 	})
 }
