@@ -20,18 +20,16 @@ func SetAuthKey(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, define.SetAuthKeyResponse{
-			ResponseID: request.RequestID,
-			Success:    false,
-			ErrorInfo:  fmt.Sprintf("Failed to parse request; err = %v", err),
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
 		})
 		return
 	}
 
 	if !checkAuth(request.Token) {
 		c.JSON(http.StatusOK, define.SetAuthKeyResponse{
-			ResponseID: request.RequestID,
-			Success:    false,
-			ErrorInfo:  fmt.Sprintf("Auth not pass (provided token = %s)", request.Token),
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Auth not pass (provided token = %s)", request.Token),
 		})
 		return
 	}
@@ -43,24 +41,21 @@ func SetAuthKey(c *gin.Context) {
 		err = removeAuth(request.AuthKeyToSet)
 	default:
 		c.JSON(http.StatusOK, define.SetAuthKeyResponse{
-			ResponseID: request.RequestID,
-			Success:    false,
-			ErrorInfo:  fmt.Sprintf("Unknown action type %d was found", request.AuthKeyAction),
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Unknown action type %d was found", request.AuthKeyAction),
 		})
 		return
 	}
 	if err != nil {
 		c.JSON(http.StatusOK, define.SetAuthKeyResponse{
-			ResponseID: request.RequestID,
-			Success:    false,
-			ErrorInfo:  fmt.Sprintf("Set auth key failed; err = %v", err),
+			Success:   false,
+			ErrorInfo: fmt.Sprintf("Set auth key failed; err = %v", err),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, define.SetAuthKeyResponse{
-		ResponseID: request.RequestID,
-		Success:    true,
+		Success: true,
 	})
 }
 
