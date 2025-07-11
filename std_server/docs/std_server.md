@@ -53,11 +53,12 @@
 检查第二个机器人是否可以正常与租赁服通信。
 
 ### 基本信息
-| 项       | 值             |
-| -------- | -------------- |
-| Method   | GET            |
-| URL      | `/check_alive` |
-| Response | `JSON`         |
+| 项          | 值           |
+| ----------- | ------------ |
+| Method      | GET          |
+| URL         | /check_alive |
+| ContentType | -            |
+| Response    | JSON         |
 
 ### 返回表单
 | 键         | 值类型 | 值描述                                                            |
@@ -74,10 +75,12 @@
 让机器人退出租赁服，并关闭已打开的 HTTP 服务器。
 
 ### 基本信息
-| 项     | 值            |
-| ------ | ------------- |
-| Method | GET           |
-| URL    | /process_exit |
+| 项          | 值            |
+| ----------- | ------------- |
+| Method      | GET           |
+| URL         | /process_exit |
+| ContentType | -             |
+| Response    | -             |
 
 
 
@@ -88,11 +91,12 @@
 改变操作台的位置。
 
 ### 基本信息
-| 项       | 值                       |
-| -------- | ------------------------ |
-| Method   | POST                     |
-| URL      | /change_console_position |
-| Response | JSON                     |
+| 项          | 值                       |
+| ----------- | ------------------------ |
+| Method      | POST                     |
+| URL         | /change_console_position |
+| ContentType | application/json         |
+| Response    | JSON                     |
 
 ### 请求表单
 | 键           | 值类型 | 值描述                                                                            |
