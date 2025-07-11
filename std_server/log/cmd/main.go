@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/OmineDev/flowers-for-machines/std_server/define"
-	"github.com/google/uuid"
 )
 
 const AuthKey = "..."
@@ -23,7 +22,6 @@ func setAuth() {
 	var response define.SetAuthKeyResponse
 
 	request := define.SetAuthKeyRequest{
-		RequestID:     uuid.New().String(),
 		Token:         AuthKey,
 		AuthKeyAction: define.ActionRemoveAuthKey,
 		AuthKeyToSet:  "",
