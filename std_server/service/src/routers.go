@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouter() *gin.Engine {
+func initRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.GET("/check_alive", CheckAlive)
@@ -25,7 +25,7 @@ func InitRouter() *gin.Engine {
 	return router
 }
 
-func RunServer() {
-	router := InitRouter()
-	router.Run(fmt.Sprintf(":%d", *standardServerPort))
+func runHttpServer(standardServerPort int) {
+	router := initRouter()
+	router.Run(fmt.Sprintf(":%d", standardServerPort))
 }

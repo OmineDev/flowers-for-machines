@@ -56,6 +56,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/muhammadmuzzammil1998/jsonc v1.0.0
 	github.com/pterm/pterm v0.12.80
+	go.etcd.io/bbolt v1.4.2
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0
 )

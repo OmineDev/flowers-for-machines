@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"encoding/base64"
@@ -13,6 +13,7 @@ import (
 	"github.com/OmineDev/flowers-for-machines/nbt_assigner/nbt_console"
 	nbt_hash "github.com/OmineDev/flowers-for-machines/nbt_parser/hash"
 	nbt_parser_interface "github.com/OmineDev/flowers-for-machines/nbt_parser/interface"
+	"github.com/OmineDev/flowers-for-machines/std_server/define"
 	"github.com/OmineDev/flowers-for-machines/utils"
 	"github.com/google/uuid"
 
@@ -22,18 +23,17 @@ import (
 func CheckAlive(c *gin.Context) {
 	err := mcClient.Conn().Flush()
 	if err != nil {
-		c.JSON(http.StatusOK, CheckAliveResponse{
+		c.JSON(http.StatusOK, define.CheckAliveResponse{
 			Alive:     false,
 			ErrorInfo: fmt.Sprintf("Bot is dead; err = %v", err),
 		})
 		return
 	}
-	c.JSON(http.StatusOK, CheckAliveResponse{Alive: true})
+	c.JSON(http.StatusOK, define.CheckAliveResponse{Alive: true})
 }
 
 func ProcessExist(c *gin.Context) {
 	mu.Lock()
-	_, _ = gameInterface.Commands().SendWSCommandWithResp("deop @s")
 	_ = mcClient.Conn().Close()
 	go func() {
 		time.Sleep(time.Second)
@@ -44,11 +44,11 @@ func ProcessExist(c *gin.Context) {
 func ChangeConsolePosition(c *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
-	var request ChangeConsolePosRequest
+	var request define.ChangeConsolePosRequest
 
 	err := c.BindJSON(&request)
 	if err != nil {
-		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+		c.JSON(http.StatusOK, define.ChangeConsolePosResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
 		})
@@ -64,28 +64,36 @@ func ChangeConsolePosition(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, ChangeConsolePosResponse{
+		c.JSON(http.StatusOK, define.ChangeConsolePosResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Change console position failed; err = %v", err),
 		})
+		sendLogRecord(
+			define.SourceDefault,
+			userName,
+			gameInterface.GetBotInfo().BotName,
+			define.SystemNameChangeConsolePosition,
+			request,
+			fmt.Sprintf("%v", err),
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, ChangeConsolePosResponse{Success: true})
+	c.JSON(http.StatusOK, define.ChangeConsolePosResponse{Success: true})
 }
 
 func PlaceNBTBlock(c *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var request PlaceNBTBlockRequest
+	var request define.PlaceNBTBlockRequest
 	var blockNBT map[string]any
 
 	err := c.BindJSON(&request)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceNBTBlockResponse{
+		c.JSON(http.StatusOK, define.PlaceNBTBlockResponse{
 			Success:   false,
-			ErrorType: ResponseErrorTypeParseError,
+			ErrorType: define.ResponseErrorTypeParseError,
 			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
 		})
 		return
@@ -93,18 +101,18 @@ func PlaceNBTBlock(c *gin.Context) {
 
 	blockNBTBytes, err := base64.StdEncoding.DecodeString(request.BlockNBTBase64String)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceNBTBlockResponse{
+		c.JSON(http.StatusOK, define.PlaceNBTBlockResponse{
 			Success:   false,
-			ErrorType: ResponseErrorTypeParseError,
+			ErrorType: define.ResponseErrorTypeParseError,
 			ErrorInfo: fmt.Sprintf("Failed to parse block NBT base64 string; err = %v", err),
 		})
 		return
 	}
 	err = nbt.UnmarshalEncoding(blockNBTBytes, &blockNBT, nbt.LittleEndian)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceNBTBlockResponse{
+		c.JSON(http.StatusOK, define.PlaceNBTBlockResponse{
 			Success:   false,
-			ErrorType: ResponseErrorTypeParseError,
+			ErrorType: define.ResponseErrorTypeParseError,
 			ErrorInfo: fmt.Sprintf("Block NBT bytes is broken; err = %v", err),
 		})
 		return
@@ -116,15 +124,23 @@ func PlaceNBTBlock(c *gin.Context) {
 		blockNBT,
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceNBTBlockResponse{
+		c.JSON(http.StatusOK, define.PlaceNBTBlockResponse{
 			Success:   false,
-			ErrorType: ResponseErrorTypeRuntimeError,
+			ErrorType: define.ResponseErrorTypeRuntimeError,
 			ErrorInfo: fmt.Sprintf("Runtime error: Failed to place NBT block; err = %v", err),
 		})
+		sendLogRecord(
+			define.SourceDefault,
+			userName,
+			gameInterface.GetBotInfo().BotName,
+			define.SystemNamePlaceNBTBlock,
+			request,
+			fmt.Sprintf("%v", err),
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, PlaceNBTBlockResponse{
+	c.JSON(http.StatusOK, define.PlaceNBTBlockResponse{
 		Success:           true,
 		CanFast:           canFast,
 		StructureUniqueID: uniqueID.String(),
@@ -139,16 +155,35 @@ func PlaceLargeChest(c *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var request PlaceLargeChestRequest
+	var request define.PlaceLargeChestRequest
+	var success bool
+	var errorInfo string
 
 	err := c.BindJSON(&request)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
+		c.JSON(http.StatusOK, define.PlaceLargeChestResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
 		})
 		return
 	}
+
+	defer func() {
+		if !success {
+			c.JSON(http.StatusOK, define.PlaceLargeChestResponse{
+				Success:   false,
+				ErrorInfo: errorInfo,
+			})
+			sendLogRecord(
+				define.SourceDefault,
+				userName,
+				gameInterface.GetBotInfo().BotName,
+				define.SystemNamePlaceLargeChest,
+				request,
+				errorInfo,
+			)
+		}
+	}()
 
 	// Step 1: Prepare
 	center := console.Center()
@@ -173,10 +208,7 @@ func PlaceLargeChest(c *gin.Context) {
 			"[]",
 		)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Clean blocks for offset %v failed; err = %v", offset, err),
-			})
+			errorInfo = fmt.Sprintf("Clean blocks for offset %v failed; err = %v", offset, err)
 			return
 		}
 
@@ -193,27 +225,18 @@ func PlaceLargeChest(c *gin.Context) {
 	if !request.PairleadChestStructureExist {
 		err = gameInterface.SetBlock().SetBlock(pairleadPos, request.BlockName, request.BlockStatesString)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Place pairlead chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Place pairlead chest failed; err = %v", err)
 			return
 		}
 	} else {
 		uniqueID, err := uuid.Parse(request.PairleadChestUniqueID)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Parse structure unique ID of pairlead chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Parse structure unique ID of pairlead chest failed; err = %v", err)
 			return
 		}
 		err = gameInterface.StructureBackup().RevertStructure(uniqueID, pairleadPos)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Revert structure for pairlead chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Revert structure for pairlead chest failed; err = %v", err)
 			return
 		}
 	}
@@ -228,27 +251,18 @@ func PlaceLargeChest(c *gin.Context) {
 	if !request.PairedChestStructureExist {
 		err = gameInterface.SetBlock().SetBlock(pairedPos, request.BlockName, request.BlockStatesString)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Place paired chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Place paired chest failed; err = %v", err)
 			return
 		}
 	} else {
 		uniqueID, err := uuid.Parse(request.PairedChestUniqueID)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Parse structure unique ID of paired chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Parse structure unique ID of paired chest failed; err = %v", err)
 			return
 		}
 		err = gameInterface.StructureBackup().RevertStructure(uniqueID, pairedPos)
 		if err != nil {
-			c.JSON(http.StatusOK, PlaceLargeChestResponse{
-				Success:   false,
-				ErrorInfo: fmt.Sprintf("Revert structure for paired chest failed; err = %v", err),
-			})
+			errorInfo = fmt.Sprintf("Revert structure for paired chest failed; err = %v", err)
 			return
 		}
 	}
@@ -269,30 +283,21 @@ func PlaceLargeChest(c *gin.Context) {
 		true,
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
-			Success:   false,
-			ErrorInfo: fmt.Sprintf("Clone commands failed; err = %v", err),
-		})
+		errorInfo = fmt.Sprintf("Clone commands failed; err = %v", err)
 		return
 	}
 
 	// Step 4.2: Wait clone down
 	err = gameInterface.Commands().AwaitChangesGeneral()
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
-			Success:   false,
-			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 1); err = %v", err),
-		})
+		errorInfo = fmt.Sprintf("Await changes general failed (stage 1); err = %v", err)
 		return
 	}
 
 	// Step 5: Get final structure (that included a large chest)
 	finalStructure, err := gameInterface.StructureBackup().BackupOffset(pairleadPos, pairedOffset)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
-			Success:   false,
-			ErrorInfo: fmt.Sprintf("Get final structure failed; err = %v", err),
-		})
+		errorInfo = fmt.Sprintf("Get final structure failed; err = %v", err)
 		return
 	}
 
@@ -306,26 +311,21 @@ func PlaceLargeChest(c *gin.Context) {
 		true,
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
-			Success:   false,
-			ErrorInfo: fmt.Sprintf("Clean loaded chest failed; err = %v", err),
-		})
+		errorInfo = fmt.Sprintf("Clean loaded chest failed; err = %v", err)
 		return
 	}
 
 	// Step 6.2: Wait clean down
 	err = gameInterface.Commands().AwaitChangesGeneral()
 	if err != nil {
-		c.JSON(http.StatusOK, PlaceLargeChestResponse{
-			Success:   false,
-			ErrorInfo: fmt.Sprintf("Await changes general failed (stage 2); err = %v", err),
-		})
+		errorInfo = fmt.Sprintf("Await changes general failed (stage 2); err = %v", err)
 		return
 	}
 	nearBlock = console.NearBlockByIndex(nbt_console.ConsoleIndexCenterBlock, protocol.BlockPos{0, 1, 0})
 	*nearBlock = block_helper.Air{}
 
-	c.JSON(http.StatusOK, PlaceLargeChestResponse{
+	success = true
+	c.JSON(http.StatusOK, define.PlaceLargeChestResponse{
 		Success:           true,
 		StructureUniqueID: finalStructure.String(),
 		StructureName:     utils.MakeUUIDSafeString(finalStructure),
@@ -333,13 +333,13 @@ func PlaceLargeChest(c *gin.Context) {
 }
 
 func GetNBTBlockHash(c *gin.Context) {
-	var request GetNBTBlockHashRequest
+	var request define.GetNBTBlockHashRequest
 	var blockNBT map[string]any
 	var hash uint64
 
 	err := c.BindJSON(&request)
 	if err != nil {
-		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse request; err = %v", err),
 		})
@@ -348,7 +348,7 @@ func GetNBTBlockHash(c *gin.Context) {
 
 	blockNBTBytes, err := base64.StdEncoding.DecodeString(request.BlockNBTBase64String)
 	if err != nil {
-		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse block NBT base64 string; err = %v", err),
 		})
@@ -356,7 +356,7 @@ func GetNBTBlockHash(c *gin.Context) {
 	}
 	err = nbt.UnmarshalEncoding(blockNBTBytes, &blockNBT, nbt.LittleEndian)
 	if err != nil {
-		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Block NBT bytes is broken; err = %v", err),
 		})
@@ -370,29 +370,37 @@ func GetNBTBlockHash(c *gin.Context) {
 		blockNBT,
 	)
 	if err != nil {
-		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Failed to parse target block; err = %v", err),
 		})
+		sendLogRecord(
+			define.SourceDefault,
+			userName,
+			gameInterface.GetBotInfo().BotName,
+			define.SystemNameGetNBTBlockHash,
+			request,
+			fmt.Sprintf("%v", err),
+		)
 		return
 	}
 
 	switch request.RequestType {
-	case RequestTypeFullHash:
+	case define.RequestTypeFullHash:
 		hash = nbt_hash.NBTBlockFullHash(block)
-	case RequestTypeNBTHash:
+	case define.RequestTypeNBTHash:
 		hash = nbt_hash.NBTBlockNBTHash(block)
-	case RequestTypeContainerSetHash:
+	case define.RequestTypeContainerSetHash:
 		hash = nbt_hash.ContainerSetHash(block)
 	default:
-		c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+		c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 			Success:   false,
 			ErrorInfo: fmt.Sprintf("Unknown request type %d is found", request.RequestType),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, GetNBTBlockHashResponse{
+	c.JSON(http.StatusOK, define.GetNBTBlockHashResponse{
 		Success: true,
 		Hash:    hash,
 	})

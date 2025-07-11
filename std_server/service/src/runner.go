@@ -1,9 +1,7 @@
-package main
+package service
 
 import (
-	"flag"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +17,8 @@ import (
 	"github.com/pterm/pterm"
 )
 
+var userName string
+
 var (
 	mu            *sync.Mutex
 	mcClient      *client.Client
@@ -29,50 +29,27 @@ var (
 	wrapper       *nbt_assigner.NBTAssigner
 )
 
-var (
-	rentalServerCode     *string
-	rentalServerPasscode *string
-	authServerAddress    *string
-	authServerToken      *string
-	standardServerPort   *int
-	consoleDimensionID   *int
-	consoleCenterX       *int
-	consoleCenterY       *int
-	consoleCenterZ       *int
-)
-
 func init() {
-	rentalServerCode = flag.String("rsn", "", "The rental server number.")
-	rentalServerPasscode = flag.String("rsp", "", "The pass code of the rental server.")
-	authServerAddress = flag.String("asa", "", "The auth server address.")
-	authServerToken = flag.String("ast", "", "The auth server token.")
-	standardServerPort = flag.Int("ssp", 0, "The server port to running.")
-	consoleDimensionID = flag.Int("cdi", 0, "The dimension ID of the console. (e.g. overworld = 0, nether = 1, end = 2, dmT = T, etc.)")
-	consoleCenterX = flag.Int("ccx", 0, "The X position of the center of the console.")
-	consoleCenterY = flag.Int("ccy", 0, "The Y position of the center of the console.")
-	consoleCenterZ = flag.Int("ccz", 0, "The Z position of the center of the console.")
-
-	flag.Parse()
-	if len(*rentalServerCode) == 0 {
-		log.Fatalln("Please provide your rental server number.\n\te.g. -rsn=\"123456\"")
-	}
-	if len(*authServerAddress) == 0 {
-		log.Fatalln("Please provide your auth server address.\n\te.g. -asa=\"http://127.0.0.1\"")
-	}
-	if *standardServerPort == 0 {
-		log.Fatalln("Please provide the server port to running.\n\te.g. -ssp=0")
-	}
-
 	mu = new(sync.Mutex)
 }
 
-func main() {
+func RunServer(
+	rentalServerCode string,
+	rentalServerPasscode string,
+	authServerAddress string,
+	authServerToken string,
+	standardServerPort int,
+	consoleDimensionID int,
+	consoleCenterX int,
+	consoleCenterY int,
+	consoleCenterZ int,
+) {
 	var err error
 	cfg := client.Config{
-		AuthServerAddress:    *authServerAddress,
-		AuthServerToken:      *authServerToken,
-		RentalServerCode:     *rentalServerCode,
-		RentalServerPasscode: *rentalServerPasscode,
+		AuthServerAddress:    authServerAddress,
+		AuthServerToken:      authServerToken,
+		RentalServerCode:     rentalServerCode,
+		RentalServerPasscode: rentalServerPasscode,
 	}
 
 	for {
@@ -93,11 +70,11 @@ func main() {
 
 	console, err = nbt_console.NewConsole(
 		gameInterface,
-		uint8(*consoleDimensionID),
+		uint8(consoleDimensionID),
 		protocol.BlockPos{
-			int32(*consoleCenterX),
-			int32(*consoleCenterY),
-			int32(*consoleCenterZ),
+			int32(consoleCenterX),
+			int32(consoleCenterY),
+			int32(consoleCenterZ),
 		},
 	)
 	if err != nil {
@@ -106,19 +83,13 @@ func main() {
 	cache = nbt_cache.NewNBTCacheSystem(console)
 	wrapper = nbt_assigner.NewNBTAssigner(console, cache)
 
-	RunServer()
+	runHttpServer(standardServerPort)
 }
 
 func requestPermission() {
-	api := gameInterface.Commands()
-
-	_, err := api.SendWSCommandWithResp("deop @s")
-	if err != nil {
-		panic(err)
-	}
-
 	ticker := time.NewTicker(time.Second * 3)
 	defer ticker.Stop()
+
 	for {
 		resp, err := gameInterface.Commands().SendWSCommandWithResp("querytarget @s")
 		if err != nil {

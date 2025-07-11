@@ -1,0 +1,165 @@
+package log
+
+import (
+	"bytes"
+	"cmp"
+	"fmt"
+	"slices"
+
+	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
+	"github.com/OmineDev/flowers-for-machines/std_server/define"
+	"go.etcd.io/bbolt"
+)
+
+const (
+	DatabaseFile          = "log_record.db"
+	DatabaseAuthKeyBucket = "auth_key"
+	DatabseLogBucket      = "logs"
+)
+
+var database *bbolt.DB
+
+func init() {
+	var err error
+
+	database, err = bbolt.Open(DatabaseFile, 0600, &bbolt.Options{
+		FreelistType: bbolt.FreelistMapType,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = database.Update(func(tx *bbolt.Tx) error {
+		_, err = tx.CreateBucketIfNotExists([]byte(DatabaseAuthKeyBucket))
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = database.Update(func(tx *bbolt.Tx) error {
+		_, err = tx.CreateBucketIfNotExists([]byte(DatabseLogBucket))
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func checkAuth(key string) (result bool) {
+	_ = database.View(func(tx *bbolt.Tx) error {
+		payload := tx.Bucket([]byte(DatabaseAuthKeyBucket)).Get([]byte(key))
+		if len(payload) != 1 || payload[0] != 1 {
+			return nil
+		}
+		result = true
+		return nil
+	})
+	return
+}
+
+func setAuth(key string) error {
+	err := database.Update(func(tx *bbolt.Tx) error {
+		return tx.
+			Bucket([]byte(DatabaseAuthKeyBucket)).
+			Put([]byte(key), []byte{1})
+	})
+	if err != nil {
+		return fmt.Errorf("setAuth: %v", err)
+	}
+	return nil
+}
+
+func removeAuth(key string) error {
+	err := database.Update(func(tx *bbolt.Tx) error {
+		return tx.
+			Bucket([]byte(DatabaseAuthKeyBucket)).
+			Delete([]byte(key))
+	})
+	if err != nil {
+		return fmt.Errorf("removeAuth: %v", err)
+	}
+	return nil
+}
+
+func writeLog(request define.LogRecordRequest) error {
+	keyBuf := bytes.NewBuffer(nil)
+	request.MarshalKey(protocol.NewWriter(keyBuf, 0))
+
+	payloadBuf := bytes.NewBuffer(nil)
+	request.MarshalPayload(protocol.NewWriter(payloadBuf, 0))
+
+	err := database.Update(func(tx *bbolt.Tx) error {
+		return tx.
+			Bucket([]byte(DatabseLogBucket)).
+			Put(keyBuf.Bytes(), payloadBuf.Bytes())
+	})
+	if err != nil {
+		return fmt.Errorf("writeLog: %v", err)
+	}
+
+	return nil
+}
+
+func reviewLogs(request define.LogReviewRequest) []define.LogRecordRequest {
+	result := make([]define.LogRecordRequest, 0)
+
+	sourceMapping := make(map[string]bool)
+	requestIDMapping := make(map[string]bool)
+	userNameMapping := make(map[string]bool)
+	botNameMapping := make(map[string]bool)
+	systemNameMapping := make(map[string]bool)
+
+	for _, value := range request.Source {
+		sourceMapping[value] = true
+	}
+	for _, value := range request.RequestID {
+		requestIDMapping[value] = true
+	}
+	for _, value := range request.UserName {
+		userNameMapping[value] = true
+	}
+	for _, value := range request.BotName {
+		botNameMapping[value] = true
+	}
+	for _, value := range request.SystemName {
+		systemNameMapping[value] = true
+	}
+
+	_ = database.View(func(tx *bbolt.Tx) error {
+		return tx.Bucket([]byte(DatabseLogBucket)).ForEach(func(k, v []byte) error {
+			var singleLog define.LogRecordRequest
+			singleLog.MarshalKey(protocol.NewReader(bytes.NewBuffer(k), 0, false))
+
+			if len(sourceMapping) > 0 && !sourceMapping[singleLog.Source] {
+				return nil
+			}
+			if len(requestIDMapping) > 0 && !requestIDMapping[singleLog.RequestID] {
+				return nil
+			}
+			if len(userNameMapping) > 0 && !userNameMapping[singleLog.UserName] {
+				return nil
+			}
+			if len(botNameMapping) > 0 && !botNameMapping[singleLog.BotName] {
+				return nil
+			}
+			if request.StartUnixTime != 0 && request.EndUnixTime != 0 {
+				if singleLog.CreateUnixTime > request.EndUnixTime || singleLog.CreateUnixTime < request.StartUnixTime {
+					return nil
+				}
+			}
+			if len(systemNameMapping) > 0 && !systemNameMapping[singleLog.SystemName] {
+				return nil
+			}
+
+			singleLog.MarshalPayload(protocol.NewReader(bytes.NewBuffer(v), 0, false))
+			result = append(result, singleLog)
+			return nil
+		})
+	})
+
+	slices.SortStableFunc(result, func(a define.LogRecordRequest, b define.LogRecordRequest) int {
+		return cmp.Compare(a.CreateUnixTime, b.CreateUnixTime)
+	})
+	return result
+}
