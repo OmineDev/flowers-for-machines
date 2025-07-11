@@ -65,14 +65,15 @@ func reviewLogs() {
 	var response define.LogReviewResponse
 
 	request := define.LogReviewRequest{
-		AuthKey:       AuthKey,
-		Source:        []string{},
-		LogUniqueID:   []string{},
-		UserName:      []string{},
-		BotName:       []string{},
-		StartUnixTime: 0,
-		EndUnixTime:   0,
-		SystemName:    []string{},
+		AuthKey:         AuthKey,
+		IncludeFinished: false,
+		Source:          []string{},
+		LogUniqueID:     []string{},
+		UserName:        []string{},
+		BotName:         []string{},
+		StartUnixTime:   0,
+		EndUnixTime:     0,
+		SystemName:      []string{},
 	}
 
 	jsonBytes, err := json.Marshal(request)
