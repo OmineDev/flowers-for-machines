@@ -101,6 +101,37 @@ func saveLog(key LogKey, payload LogPayload) error {
 	return nil
 }
 
+func deleteLog(key LogKey) error {
+	buf := bytes.NewBuffer(nil)
+	key.Marshal(protocol.NewWriter(buf, 0))
+
+	err := database.Update(func(tx *bbolt.Tx) error {
+		return tx.
+			Bucket([]byte(DatabseLogBucket)).
+			Delete(buf.Bytes())
+	})
+	if err != nil {
+		return fmt.Errorf("deleteLog: %v", err)
+	}
+
+	return nil
+}
+
+func updateReviewStates(key LogKey, payload LogPayload, newStates uint8) error {
+	err := deleteLog(key)
+	if err != nil {
+		return fmt.Errorf("updateReviewStates: %v", err)
+	}
+
+	key.ReviewStstaes = newStates
+	err = saveLog(key, payload)
+	if err != nil {
+		return fmt.Errorf("updateReviewStates: %v", err)
+	}
+
+	return nil
+}
+
 func filterLogs(request define.LogReviewRequest) []FullLogRecord {
 	result := make([]FullLogRecord, 0)
 

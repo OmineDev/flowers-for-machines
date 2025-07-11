@@ -164,11 +164,7 @@ func LogFinishReview(c *gin.Context) {
 		define.LogReviewRequest{LogUniqueID: request.LogUniqueID},
 	)
 	for _, value := range result {
-		value.ReviewStstaes = ReviewStatesFinished
-		err = saveLog(
-			value.LogKey,
-			value.LogPayload,
-		)
+		err = updateReviewStates(value.LogKey, value.LogPayload, ReviewStatesFinished)
 		if err != nil {
 			c.JSON(http.StatusOK, define.LogFinishReviewResponse{
 				Success:   false,
