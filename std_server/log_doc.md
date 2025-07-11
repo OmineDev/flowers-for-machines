@@ -16,28 +16,50 @@
 - [日志服务器 \& 标准 HTTP 接口文档](#日志服务器--标准-http-接口文档)
   - [基本信息](#基本信息)
   - [目录](#目录)
+  - [HelloWorld](#helloworld)
+    - [基本信息](#基本信息-1)
+    - [返回值](#返回值)
   - [LogRecord](#logrecord)
     - [描述](#描述)
-    - [基本信息](#基本信息-1)
+    - [基本信息](#基本信息-2)
     - [枚举值](#枚举值)
     - [请求表单](#请求表单)
     - [返回表单](#返回表单)
   - [LogReview](#logreview)
     - [描述](#描述-1)
-    - [基本信息](#基本信息-2)
+    - [基本信息](#基本信息-3)
     - [请求表单](#请求表单-1)
     - [返回表单](#返回表单-1)
     - [结构体说明](#结构体说明)
   - [LogFinishReview](#logfinishreview)
     - [描述](#描述-2)
-    - [基本信息](#基本信息-3)
+    - [基本信息](#基本信息-4)
     - [请求表单](#请求表单-2)
     - [返回表单](#返回表单-2)
   - [SetAuthKey](#setauthkey)
     - [描述](#描述-3)
-    - [基本信息](#基本信息-4)
+    - [基本信息](#基本信息-5)
     - [请求表单](#请求表单-3)
     - [返回表单](#返回表单-3)
+
+
+
+
+
+## HelloWorld
+### 基本信息
+| 项          | 值                                  |
+| ----------- | ----------------------------------- |
+| Method      | GET                                 |
+| URL         | https://log-record.eulogist-api.icu |
+| ContentType | -                                   |
+| Response    | text/plain                          |
+ 
+
+### 返回值
+```
+Hello, World!
+```
 
 
 
@@ -49,11 +71,12 @@
 在设计上，应该只在出现问题时发送日志。
 
 ### 基本信息
-| 项       | 值                                               |
-| -------- | ------------------------------------------------ |
-| Method   | POST                                             |
-| URL      | `https://log-record.eulogist-api.icu/log_record` |
-| Response | `JSON`                                           |
+| 项          | 值                                             |
+| ----------- | ---------------------------------------------- |
+| Method      | POST                                           |
+| URL         | https://log-record.eulogist-api.icu/log_record |
+| ContentType | application/json                               |
+| Response    | JSON                                           |
 
 ### 枚举值
 - Source (字符串)
@@ -95,11 +118,12 @@
 仅限已被授权的管理员使用。
 
 ### 基本信息
-| 项       | 值                                               |
-| -------- | ------------------------------------------------ |
-| Method   | POST                                             |
-| URL      | `https://log-record.eulogist-api.icu/log_review` |
-| Response | `JSON`                                           |
+| 项          | 值                                             |
+| ----------- | ---------------------------------------------- |
+| Method      | POST                                           |
+| URL         | https://log-record.eulogist-api.icu/log_review |
+| ContentType | application/json                               |
+| Response    | JSON                                           |
  
 ### 请求表单
 | 键               | 值类型     | 值描述                                                                                                                 |
@@ -146,11 +170,12 @@
 仅限已被授权的管理员使用。
 
 ### 基本信息
-| 项       | 值                                                      |
-| -------- | ------------------------------------------------------- |
-| Method   | POST                                                    |
-| URL      | `https://log-record.eulogist-api.icu/log_finish_review` |
-| Response | `JSON`                                                  |
+| 项          | 值                                                    |
+| ----------- | ----------------------------------------------------- |
+| Method      | POST                                                  |
+| URL         | https://log-record.eulogist-api.icu/log_finish_review |
+| ContentType | application/json                                      |
+| Response    | JSON                                                  |
  
 ### 请求表单
 | 键            | 值类型     | 值描述                                      |
@@ -174,11 +199,12 @@
 仅限已被授权的管理员使用。
 
 ### 基本信息
-| 项       | 值                                                 |
-| -------- | -------------------------------------------------- |
-| Method   | POST                                               |
-| URL      | `https://log-record.eulogist-api.icu/set_auth_key` |
-| Response | `JSON`                                             |
+| 项          | 值                                               |
+| ----------- | ------------------------------------------------ |
+| Method      | POST                                             |
+| URL         | https://log-record.eulogist-api.icu/set_auth_key |
+| ContentType | application/json                                 |
+| Response    | JSON                                             |
  
 ### 请求表单
 | 键              | 值类型 | 值描述                                                                 |

@@ -74,10 +74,10 @@
 让机器人退出租赁服，并关闭已打开的 HTTP 服务器。
 
 ### 基本信息
-| 项     | 值              |
-| ------ | --------------- |
-| Method | GET             |
-| URL    | `/process_exit` |
+| 项     | 值            |
+| ------ | ------------- |
+| Method | GET           |
+| URL    | /process_exit |
 
 
 
@@ -117,12 +117,12 @@
 试图制作一个新的 NBT 方块，制作位置是在操作台的中心方块处。
 
 ### 基本信息
-| 项          | 值                 |
-| ----------- | ------------------ |
-| Method      | POST               |
-| URL         | `/place_nbt_block` |
-| ContentType | `application/json` |
-| Response    | `JSON`             |
+| 项          | 值               |
+| ----------- | ---------------- |
+| Method      | POST             |
+| URL         | /place_nbt_block |
+| ContentType | application/json |
+| Response    | JSON             |
 
 ### 请求表单
 | 键                      | 值类型 | 值描述                                    |
@@ -153,12 +153,12 @@
 将已经导入的箱子合并为大箱子。
 
 ### 基本信息
-| 项          | 值                   |
-| ----------- | -------------------- |
-| Method      | POST                 |
-| URL         | `/place_large_chest` |
-| ContentType | `application/json`   |
-| Response    | `JSON`               |
+| 项          | 值                 |
+| ----------- | ------------------ |
+| Method      | POST               |
+| URL         | /place_large_chest |
+| ContentType | application/json   |
+| Response    | JSON               |
 
 ### 请求表单
 | 键                             | 值类型 | 值描述                                                                                                                   |
@@ -189,12 +189,12 @@
 获取一个 NBT 方块的 完整哈希校验和、NBT 部分校验和 或 集合哈希校验和。
 
 ### 基本信息
-| 项          | 值                    |
-| ----------- | --------------------- |
-| Method      | POST                  |
-| URL         | `/get_nbt_block_hash` |
-| ContentType | `application/json`    |
-| Response    | `JSON`                |
+| 项          | 值                  |
+| ----------- | ------------------- |
+| Method      | POST                |
+| URL         | /get_nbt_block_hash |
+| ContentType | application/json    |
+| Response    | JSON                |
 
 ### 请求表单
 | 键                      | 值类型 | 值描述                                                                                                                                                                                                                                                                     |
