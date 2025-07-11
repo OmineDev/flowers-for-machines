@@ -26,20 +26,20 @@ jobs:
       if: steps.test_should_build_standard_server.outputs.result == 'true'
       run: |
         mkdir release
-        cd std_server
-        android_arm64="GOOS=android GOARCH=arm64 go build -ldflags \"-s -w\" -o ../release/standard-server_android_arm64"
+        cd std_server/service
+        android_arm64="GOOS=android GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_android_arm64"
         echo $android_arm64 && eval $android_arm64
-        linux_amd64="GOOS=linux GOARCH=amd64 go build -ldflags \"-s -w\" -o ../release/standard-server_linux_amd64"
+        linux_amd64="GOOS=linux GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_linux_amd64"
         echo $linux_amd64 && eval $linux_amd64
-        linux_arm64="GOOS=linux GOARCH=arm64 go build -ldflags \"-s -w\" -o ../release/standard-server_linux_arm64"
+        linux_arm64="GOOS=linux GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_linux_arm64"
         echo $linux_arm64 && eval $linux_arm64
-        macos_amd64="GOOS=darwin GOARCH=amd64 go build -ldflags \"-s -w\" -o ../release/standard-server_macos_amd64"
+        macos_amd64="GOOS=darwin GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_macos_amd64"
         echo $macos_amd64 && eval $macos_amd64
-        macos_arm64="GOOS=darwin GOARCH=arm64 go build -ldflags \"-s -w\" -o ../release/standard-server_macos_arm64"
+        macos_arm64="GOOS=darwin GOARCH=arm64 go build -ldflags \"-s -w\" -o ../../release/standard-server_macos_arm64"
         echo $macos_arm64 && eval $macos_arm64
-        windows_amd64="GOOS=windows GOARCH=amd64 go build -ldflags \"-s -w\" -o ../release/standard-server_windows_amd64.exe"
+        windows_amd64="GOOS=windows GOARCH=amd64 go build -ldflags \"-s -w\" -o ../../release/standard-server_windows_amd64.exe"
         echo $windows_amd64 && eval $windows_amd64
-        windows_x86="GOOS=windows GOARCH=386 go build -ldflags \"-s -w\" -o ../release/standard-server_windows_x86.exe"
+        windows_x86="GOOS=windows GOARCH=386 go build -ldflags \"-s -w\" -o ../../release/standard-server_windows_x86.exe"
         echo $windows_x86 && eval $windows_x86
     
     - name: Version Getter
