@@ -30,7 +30,7 @@ type LogRecordRequest struct {
 }
 
 type LogRecordResponse struct {
-	LogUniqueID string `json:"log_unique_id"`
 	Success     bool   `json:"success"`
 	ErrorInfo   string `json:"error_info"`
+	LogUniqueID string `json:"log_unique_id"`
 }
