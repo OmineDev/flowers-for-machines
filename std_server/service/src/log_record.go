@@ -43,9 +43,14 @@ func sendLogRecord(
 		return
 	}
 
-	go http.Post(
-		"https://log-record.eulogist-api.icu/log_record",
-		"application/json",
-		bytes.NewBuffer(requestBytes),
-	)
+	go func() {
+		resp, err := http.Post(
+			"https://log-record.eulogist-api.icu/log_record",
+			"application/json",
+			bytes.NewBuffer(requestBytes),
+		)
+		if err == nil {
+			_ = resp.Body.Close()
+		}
+	}()
 }
