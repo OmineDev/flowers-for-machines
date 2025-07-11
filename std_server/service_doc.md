@@ -88,11 +88,11 @@
 改变操作台的位置。
 
 ### 基本信息
-| 项       | 值                         |
-| -------- | -------------------------- |
-| Method   | POST                       |
-| URL      | `/change_console_position` |
-| Response | `JSON`                     |
+| 项       | 值                       |
+| -------- | ------------------------ |
+| Method   | POST                     |
+| URL      | /change_console_position |
+| Response | JSON                     |
 
 ### 请求表单
 | 键           | 值类型 | 值描述                                                                            |
