@@ -1,10 +1,10 @@
 package define
 
 type LogReviewRequest struct {
-	ReviewRequestID string   `json:"review_request_id"`
 	AuthKey         string   `json:"auth_key"`
+	IncludeFinished bool     `json:"include_finished"`
 	Source          []string `json:"source"`
-	RequestID       []string `json:"request_id"`
+	LogUniqueID     []string `json:"log_unique_id"`
 	UserName        []string `json:"user_name"`
 	BotName         []string `json:"bot_name"`
 	StartUnixTime   int64    `json:"start_unix_time"`
@@ -13,7 +13,6 @@ type LogReviewRequest struct {
 }
 
 type LogReviewResponse struct {
-	ResponseID string   `json:"response_id"`
 	Success    bool     `json:"success"`
 	ErrorInfo  string   `json:"error_info"`
 	LogRecords []string `json:"log_records"`

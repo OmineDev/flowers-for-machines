@@ -10,9 +10,10 @@ func initRouter() *gin.Engine {
 	router := gin.Default()
 
 	router.GET("/", Root)
+	router.POST("/set_auth_key", SetAuthKey)
 	router.POST("/log_record", LogRecord)
 	router.POST("/log_review", LogReview)
-	router.POST("/set_auth_key", SetAuthKey)
+	router.POST("/log_finish_review", LogFinishReview)
 
 	router.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)

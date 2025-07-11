@@ -82,12 +82,12 @@ func removeAuth(key string) error {
 	return nil
 }
 
-func writeLog(request define.LogRecordRequest) error {
+func saveLog(key LogKey, payload LogPayload) error {
 	keyBuf := bytes.NewBuffer(nil)
-	request.MarshalKey(protocol.NewWriter(keyBuf, 0))
+	key.Marshal(protocol.NewWriter(keyBuf, 0))
 
 	payloadBuf := bytes.NewBuffer(nil)
-	request.MarshalPayload(protocol.NewWriter(payloadBuf, 0))
+	payload.Marshal(protocol.NewWriter(payloadBuf, 0))
 
 	err := database.Update(func(tx *bbolt.Tx) error {
 		return tx.
@@ -95,17 +95,17 @@ func writeLog(request define.LogRecordRequest) error {
 			Put(keyBuf.Bytes(), payloadBuf.Bytes())
 	})
 	if err != nil {
-		return fmt.Errorf("writeLog: %v", err)
+		return fmt.Errorf("saveLog: %v", err)
 	}
 
 	return nil
 }
 
-func reviewLogs(request define.LogReviewRequest) []define.LogRecordRequest {
-	result := make([]define.LogRecordRequest, 0)
+func filterLogs(request define.LogReviewRequest) []FullLogRecord {
+	result := make([]FullLogRecord, 0)
 
 	sourceMapping := make(map[string]bool)
-	requestIDMapping := make(map[string]bool)
+	logUniqueIDMapping := make(map[string]bool)
 	userNameMapping := make(map[string]bool)
 	botNameMapping := make(map[string]bool)
 	systemNameMapping := make(map[string]bool)
@@ -113,8 +113,8 @@ func reviewLogs(request define.LogReviewRequest) []define.LogRecordRequest {
 	for _, value := range request.Source {
 		sourceMapping[value] = true
 	}
-	for _, value := range request.RequestID {
-		requestIDMapping[value] = true
+	for _, value := range request.LogUniqueID {
+		logUniqueIDMapping[value] = true
 	}
 	for _, value := range request.UserName {
 		userNameMapping[value] = true
@@ -128,37 +128,45 @@ func reviewLogs(request define.LogReviewRequest) []define.LogRecordRequest {
 
 	_ = database.View(func(tx *bbolt.Tx) error {
 		return tx.Bucket([]byte(DatabseLogBucket)).ForEach(func(k, v []byte) error {
-			var singleLog define.LogRecordRequest
-			singleLog.MarshalKey(protocol.NewReader(bytes.NewBuffer(k), 0, false))
+			var key LogKey
+			var payload LogPayload
+			key.Marshal(protocol.NewReader(bytes.NewBuffer(k), 0, false))
 
-			if len(sourceMapping) > 0 && !sourceMapping[singleLog.Source] {
+			if !request.IncludeFinished && key.ReviewStstaes != ReviewStatesUnfinish {
 				return nil
 			}
-			if len(requestIDMapping) > 0 && !requestIDMapping[singleLog.RequestID] {
+			if len(sourceMapping) > 0 && !sourceMapping[key.Source] {
 				return nil
 			}
-			if len(userNameMapping) > 0 && !userNameMapping[singleLog.UserName] {
+			if len(logUniqueIDMapping) > 0 && !logUniqueIDMapping[key.LogUniqueID] {
 				return nil
 			}
-			if len(botNameMapping) > 0 && !botNameMapping[singleLog.BotName] {
+			if len(userNameMapping) > 0 && !userNameMapping[key.UserName] {
+				return nil
+			}
+			if len(botNameMapping) > 0 && !botNameMapping[key.BotName] {
 				return nil
 			}
 			if request.StartUnixTime != 0 && request.EndUnixTime != 0 {
-				if singleLog.CreateUnixTime > request.EndUnixTime || singleLog.CreateUnixTime < request.StartUnixTime {
+				if key.CreateUnixTime > request.EndUnixTime || key.CreateUnixTime < request.StartUnixTime {
 					return nil
 				}
 			}
-			if len(systemNameMapping) > 0 && !systemNameMapping[singleLog.SystemName] {
+			if len(systemNameMapping) > 0 && !systemNameMapping[key.SystemName] {
 				return nil
 			}
 
-			singleLog.MarshalPayload(protocol.NewReader(bytes.NewBuffer(v), 0, false))
-			result = append(result, singleLog)
+			payload.Marshal(protocol.NewReader(bytes.NewBuffer(v), 0, false))
+			result = append(result, FullLogRecord{
+				LogKey:     key,
+				LogPayload: payload,
+			})
+
 			return nil
 		})
 	})
 
-	slices.SortStableFunc(result, func(a define.LogRecordRequest, b define.LogRecordRequest) int {
+	slices.SortStableFunc(result, func(a FullLogRecord, b FullLogRecord) int {
 		return cmp.Compare(a.CreateUnixTime, b.CreateUnixTime)
 	})
 	return result

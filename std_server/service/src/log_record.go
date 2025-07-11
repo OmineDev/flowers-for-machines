@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/OmineDev/flowers-for-machines/std_server/define"
-	"github.com/google/uuid"
 )
 
 const EnableLogRecordSending = true
@@ -31,7 +30,6 @@ func sendLogRecord(
 	}
 
 	request := define.LogRecordRequest{
-		RequestID:      uuid.New().String(),
 		Source:         source,
 		UserName:       userName,
 		BotName:        botName,
