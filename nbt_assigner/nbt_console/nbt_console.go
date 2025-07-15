@@ -13,7 +13,8 @@ import (
 )
 
 // Console 是机器人导入 NBT 方块所使用的操作台。
-// 它目前被定义为一个 11*5*11 的全空气区域
+// 它目前被定义为以操作台中心为中心的 11*5*11
+// 的全空气区域
 type Console struct {
 	// api 是与租赁服进行交互的若干接口
 	api *game_interface.GameInterface
