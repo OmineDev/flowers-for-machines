@@ -26,8 +26,9 @@ func FormatByte(input uint8) string {
 func FormatEnch(id int16, level int16) string {
 	levelString := ""
 
-	if int(level-1) < len(mapping.EnchLevelFormat) {
-		levelString = mapping.EnchLevelFormat[level-1]
+	index := int(level - 1)
+	if index >= 0 && index < len(mapping.EnchLevelFormat) {
+		levelString = mapping.EnchLevelFormat[index]
 	} else {
 		levelString = fmt.Sprintf("%d", level)
 	}
