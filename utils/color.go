@@ -4,11 +4,10 @@ import "math"
 
 // 计算两个 RGB 颜色 colorA 和 colorB 的加权欧式距离
 func CalculateColorDistance(colorA [3]uint8, colorB [3]uint8) float64 {
-	rmean := float64(colorA[0]+colorB[0]) / 2
-	deltaR := float64(colorA[0] - colorB[0])
-	deltaG := float64(colorA[1] - colorB[1])
-	deltaB := float64(colorA[2] - colorB[2])
-	return math.Sqrt((2+rmean/256)*deltaR*deltaR + 4*deltaG*deltaG + (2+(255-rmean)/256)*deltaB*deltaB)
+	deltaR := float64(colorA[0]) - float64(colorB[0])
+	deltaG := float64(colorA[1]) - float64(colorB[1])
+	deltaB := float64(colorA[2]) - float64(colorB[2])
+	return deltaR*deltaR + deltaG*deltaG + deltaB*deltaB
 }
 
 // 从 mapping 中选出距离 color 最近的 RGB 颜色
