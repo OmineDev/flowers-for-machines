@@ -2,7 +2,7 @@ package utils
 
 import "math"
 
-// 计算两个 RGB 颜色 colorA 和 colorB 的加权欧式距离
+// 计算两个 RGB 颜色 colorA 和 colorB 的欧式距离
 func CalculateColorDistance(colorA [3]uint8, colorB [3]uint8) float64 {
 	deltaR := float64(colorA[0]) - float64(colorB[0])
 	deltaG := float64(colorA[1]) - float64(colorB[1])
