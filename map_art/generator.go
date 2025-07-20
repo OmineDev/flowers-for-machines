@@ -34,7 +34,7 @@ func GenerateMapArtStructure(basePos [3]int32, pixels [128][128]color.RGBA) (
 	for x := range 128 {
 		flag := (x%2 == 0)
 
-		switch blockMatrix[x][2].BlockMode.HeightMode {
+		switch blockMatrix[x][1].BlockMode.HeightMode {
 		case HeightModeHigher:
 			if flag {
 				blockMatrix[x][0] = SingleMapBlock{
