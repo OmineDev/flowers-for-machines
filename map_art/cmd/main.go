@@ -63,8 +63,9 @@ func doImport() {
 		}
 	}
 
+	counter := 0
 	importPos, result := map_art.GenerateMapArtStructure(
-		[3]int32{-6592, -30, 6976},
+		[3]int32{-4416, -30, 6976},
 		pixels,
 	)
 	for relativeX := range len(result) {
@@ -83,7 +84,11 @@ func doImport() {
 				panic(err)
 			}
 
-			time.Sleep(time.Second / 20)
+			counter++
+			if counter >= 20 {
+				time.Sleep(time.Second / 20)
+				counter = 0
+			}
 		}
 	}
 }
