@@ -166,9 +166,7 @@ func GenerateMapArtStructure(basePos [3]int32, pixels [128][128]color.RGBA) (
 	minPosY := int16(384)
 	for x := range 128 {
 		for z := range 129 {
-			if blockMatrix[x][z].PosY < int16(minPosY) {
-				minPosY = blockMatrix[x][z].PosY
-			}
+			minPosY = min(minPosY, blockMatrix[x][z].PosY)
 		}
 	}
 	for x := range 128 {
