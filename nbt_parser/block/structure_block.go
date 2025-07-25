@@ -28,9 +28,9 @@ type StructureBlockNBT struct {
 	XStructureOffset int32   `mapstructure:"xStructureOffset"`
 	XStructureSize   int32   `mapstructure:"xStructureSize"`
 	YStructureOffset int32   `mapstructure:"yStructureOffset"`
-	YStructureSize   int32   `mapstructure:"xStructureSize"`
+	YStructureSize   int32   `mapstructure:"yStructureSize"`
 	ZStructureOffset int32   `mapstructure:"zStructureOffset"`
-	ZStructureSize   int32   `mapstructure:"xStructureSize"`
+	ZStructureSize   int32   `mapstructure:"zStructureSize"`
 }
 
 // 结构方块
