@@ -131,6 +131,9 @@ func (s *Shield) Make() (resultSlot map[uint64]resources_control.SlotID, err err
 			},
 		}
 
+		if shield.DefaultItem.Enhance.ItemComponent.KeepOnDeath {
+			expectedItem.NBT.NBTData["minecraft:keep_on_death"] = byte(1)
+		}
 		if banner.NBT.Type == nbt_parser_general.BannerTypeOminous {
 			expectedItem.NBT.NBTData = map[string]any{
 				"Base": int32(15),

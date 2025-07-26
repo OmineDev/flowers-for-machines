@@ -183,6 +183,14 @@ func (b *Banner) makeNormal(
 			nbtPatterns = append(nbtPatterns, singlePattern)
 		}
 
+		bannerNBT := map[string]any{
+			"Patterns": nbtPatterns,
+			"Type":     nbt_parser_general.BannerTypeNormal,
+		}
+		if banner.DefaultItem.Enhance.ItemComponent.KeepOnDeath {
+			bannerNBT["minecraft:keep_on_death"] = byte(1)
+		}
+
 		resultBanners[idx] = resources_control.ExpectedNewItem{
 			ItemType: resources_control.ItemNewType{
 				UseNetworkID: true,
@@ -195,12 +203,9 @@ func (b *Banner) makeNormal(
 				BlockRuntimeID:    0,
 			},
 			NBT: resources_control.ItemNewNBTData{
-				UseNBTData:      true,
-				UseOriginDamage: false,
-				NBTData: map[string]any{
-					"Patterns": nbtPatterns,
-					"Type":     nbt_parser_general.BannerTypeNormal,
-				},
+				UseNBTData:       true,
+				UseOriginDamage:  false,
+				NBTData:          bannerNBT,
 				ChangeRepairCost: false,
 				ChangeDamage:     false,
 			},
