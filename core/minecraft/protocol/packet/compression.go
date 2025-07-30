@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/internal"
-
 	"github.com/golang/snappy"
 	"github.com/klauspost/compress/flate"
 )
@@ -19,18 +18,21 @@ type Compression interface {
 	// Compress compresses the given data and returns the compressed data.
 	Compress(decompressed []byte) ([]byte, error)
 	// Decompress decompresses the given data and returns the decompressed data.
-	Decompress(compressed []byte) ([]byte, error)
+	Decompress(compressed []byte, limit int) ([]byte, error)
 }
 
 var (
 	// NopCompression is an empty implementation that does not compress data.
 	NopCompression nopCompression
 	// FlateCompression is the implementation of the Flate compression
-	// algorithm. This was used by default until v1.19.30.
+	// algorithm. This is used by default.
 	FlateCompression flateCompression
 	// SnappyCompression is the implementation of the Snappy compression
-	// algorithm. This is used by default.
+	// algorithm. Snappy currently crashes devices without `avx2`.
 	SnappyCompression snappyCompression
+	// NeteaseCompression is the implementation of the NetEase (Fixed Flate)
+	// compression algorithm. This is used by NetEase Rental Server.
+	NeteaseCompression neteaseCompression
 
 	DefaultCompression Compression = FlateCompression
 )
@@ -38,10 +40,16 @@ var (
 type (
 	// nopCompression is an empty implementation that does not compress data.
 	nopCompression struct{}
-	// flateCompression is the implementation of the Flate compression algorithm. This was used by default until v1.19.30.
+	// flateCompression is the implementation of the Flate compression algorithm.
 	flateCompression struct{}
-	// snappyCompression is the implementation of the Snappy compression algorithm. This is used by default.
+	// snappyCompression is the implementation of the Snappy compression algorithm.
 	snappyCompression struct{}
+	// neteaseCompression is the implementation of the NetEase (Fixed Flate) compression algorithm.
+	neteaseCompression struct {
+		// dict is the sliding window used when decompressing flate,
+		// and its size should always be kept within 32KB (32768 Bytes)
+		dict []byte
+	}
 )
 
 // flateDecompressPool is a sync.Pool for io.ReadCloser flate readers. These are
@@ -69,7 +77,10 @@ func (nopCompression) Compress(decompressed []byte) ([]byte, error) {
 }
 
 // Decompress ...
-func (nopCompression) Decompress(compressed []byte) ([]byte, error) {
+func (nopCompression) Decompress(compressed []byte, limit int) ([]byte, error) {
+	if len(compressed) > limit {
+		return nil, fmt.Errorf("nop decompression: size %d exceeds limit %d", len(compressed), limit)
+	}
 	return compressed, nil
 }
 
@@ -104,7 +115,7 @@ func (flateCompression) Compress(decompressed []byte) ([]byte, error) {
 }
 
 // Decompress ...
-func (flateCompression) Decompress(compressed []byte) ([]byte, error) {
+func (flateCompression) Decompress(compressed []byte, limit int) ([]byte, error) {
 	buf := bytes.NewReader(compressed)
 	c := flateDecompressPool.Get().(io.ReadCloser)
 	defer flateDecompressPool.Put(c)
@@ -116,7 +127,7 @@ func (flateCompression) Decompress(compressed []byte) ([]byte, error) {
 
 	// Guess an uncompressed size of 2*len(compressed).
 	decompressed := bytes.NewBuffer(make([]byte, 0, len(compressed)*2))
-	if _, err := io.Copy(decompressed, c); err != nil {
+	if _, err := io.Copy(decompressed, io.LimitReader(c, int64(limit))); err != nil {
 		return nil, fmt.Errorf("decompress flate: %w", err)
 	}
 	return decompressed.Bytes(), nil
@@ -137,10 +148,17 @@ func (snappyCompression) Compress(decompressed []byte) ([]byte, error) {
 }
 
 // Decompress ...
-func (snappyCompression) Decompress(compressed []byte) ([]byte, error) {
+func (snappyCompression) Decompress(compressed []byte, limit int) ([]byte, error) {
 	// Snappy writes a decoded data length prefix, so it can allocate the
 	// perfect size right away and only needs to allocate once. No need to pool
 	// byte slices here either.
+	decodedLen, err := snappy.DecodedLen(compressed)
+	if err != nil {
+		return nil, fmt.Errorf("snappy decoded length: %w", err)
+	}
+	if decodedLen > limit {
+		return nil, fmt.Errorf("snappy decoded size %d exceeds limit %d", decodedLen, limit)
+	}
 	decompressed, err := snappy.Decode(nil, compressed)
 	if err != nil {
 		return nil, fmt.Errorf("decompress snappy: %w", err)
@@ -148,10 +166,58 @@ func (snappyCompression) Decompress(compressed []byte) ([]byte, error) {
 	return decompressed, nil
 }
 
+// EncodeCompression ...
+func (neteaseCompression) EncodeCompression() uint16 {
+	return CompressionAlgorithmNetEase
+}
+
+// Compress ...
+func (neteaseCompression) Compress(decompressed []byte) ([]byte, error) {
+	// Get new buffer and writer
+	buf := bytes.NewBuffer(nil)
+	writer, err := flate.NewWriter(buf, flate.DefaultCompression)
+	if err != nil {
+		return nil, fmt.Errorf("Compress: %v", err)
+	}
+	// Write and close writer
+	_, _ = writer.Write(decompressed)
+	_ = writer.Flush()
+	validLen := buf.Len()
+	_ = writer.Close()
+	// Return
+	return buf.Bytes()[:validLen], nil
+}
+
+// Decompress ...
+func (n *neteaseCompression) Decompress(compressed []byte, limit int) ([]byte, error) {
+	// Create buffer
+	buf := bytes.NewBuffer(compressed)
+	// The given compressed data is not completely,
+	// and we need add this suffix by hand
+	buf.Write([]byte{0x01, 0x00, 0x00, 0xFF, 0xFF})
+	// Do decompress
+	reader := flate.NewReaderDict(buf, n.dict)
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("Decompress: %v", err)
+	}
+	// Update dict so that the next compressed
+	// block can refer data from the history
+	copyOne := make([]byte, len(decompressed))
+	copy(copyOne, decompressed)
+	n.dict = append(n.dict, copyOne...)
+	if len(n.dict) > 32768 {
+		n.dict = n.dict[len(n.dict)-32768:]
+	}
+	// Return
+	return decompressed, nil
+}
+
 // init registers all valid compressions with the protocol.
 func init() {
 	RegisterCompression(flateCompression{})
 	RegisterCompression(snappyCompression{})
+	RegisterCompression(&neteaseCompression{})
 }
 
 var compressions = map[uint16]Compression{}

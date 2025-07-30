@@ -15,8 +15,10 @@ import (
 type Encoder struct {
 	w io.Writer
 
-	compression Compression
-	encrypt     *encrypt
+	writeCompressID bool
+	compression     Compression
+
+	encrypt *encrypt
 }
 
 // NewEncoder returns a new Encoder for the io.Writer passed. Each final packet produced by the Encoder is
@@ -37,6 +39,9 @@ func (encoder *Encoder) EnableEncryption(keyBytes [32]byte) {
 // EnableCompression enables compression for the Encoder.
 func (encoder *Encoder) EnableCompression(compression Compression) {
 	encoder.compression = compression
+	if compression.EncodeCompression() != CompressionAlgorithmNetEase {
+		encoder.writeCompressID = true
+	}
 }
 
 // Encode encodes the packets passed. It writes all of them as a single packet which is  compressed and
@@ -63,8 +68,10 @@ func (encoder *Encoder) Encode(packets [][]byte) error {
 	data := buf.Bytes()
 	prepend := []byte{header}
 	if encoder.compression != nil {
-		prepend = append(prepend, byte(encoder.compression.EncodeCompression()))
 		var err error
+		if encoder.writeCompressID {
+			prepend = append(prepend, byte(encoder.compression.EncodeCompression()))
+		}
 		data, err = encoder.compression.Compress(data)
 		if err != nil {
 			return fmt.Errorf("compress batch: %w", err)

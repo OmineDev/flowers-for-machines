@@ -22,8 +22,10 @@ type Decoder struct {
 	// NewDecoder implements the packetReader interface.
 	pr packetReader
 
-	decompress bool
-	encrypt    *encrypt
+	decompress         bool
+	readCompressID     bool
+	maxDecompressedLen int
+	encrypt            *encrypt
 
 	checkPacketLimit bool
 }
@@ -57,8 +59,11 @@ func (decoder *Decoder) EnableEncryption(keyBytes [32]byte) {
 }
 
 // EnableCompression enables compression for the Decoder.
-func (decoder *Decoder) EnableCompression() {
+// Note that NetEase compression is no need to read compress ID.
+func (decoder *Decoder) EnableCompression(maxDecompressedLen int, readCompressID bool) {
 	decoder.decompress = true
+	decoder.readCompressID = readCompressID
+	decoder.maxDecompressedLen = maxDecompressedLen
 }
 
 // DisableBatchPacketLimit disables the check that limits the number of packets allowed in a single packet
@@ -79,6 +84,9 @@ const (
 // held and an error if not successful.
 func (decoder *Decoder) Decode() (packets [][]byte, err error) {
 	var data []byte
+	var compression Compression
+	var ok bool
+
 	if decoder.pr == nil {
 		var n int
 		n, err = decoder.r.Read(decoder.buf)
@@ -109,11 +117,19 @@ func (decoder *Decoder) Decode() (packets [][]byte, err error) {
 		if data[0] == 0xff {
 			data = data[1:]
 		} else {
-			compression, ok := CompressionByID(uint16(data[0]))
+			// If need read compress ID as the prefix
+			if decoder.readCompressID {
+				compression, ok = CompressionByID(uint16(data[0]))
+				data = data[1:]
+			} else {
+				compression, ok = CompressionByID(2)
+			}
+			// Check if we get the compression or not
 			if !ok {
 				return nil, fmt.Errorf("decompress batch: unknown compression algorithm %v", data[0])
 			}
-			data, err = compression.Decompress(data[1:])
+			// Do decompress
+			data, err = compression.Decompress(data, decoder.maxDecompressedLen)
 			if err != nil {
 				return nil, fmt.Errorf("decompress batch: %w", err)
 			}
