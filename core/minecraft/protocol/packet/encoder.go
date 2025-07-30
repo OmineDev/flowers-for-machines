@@ -15,10 +15,8 @@ import (
 type Encoder struct {
 	w io.Writer
 
-	writeCompressID bool
-	compression     Compression
-
-	encrypt *encrypt
+	compression Compression
+	encrypt     *encrypt
 }
 
 // NewEncoder returns a new Encoder for the io.Writer passed. Each final packet produced by the Encoder is
@@ -36,11 +34,36 @@ func (encoder *Encoder) EnableEncryption(keyBytes [32]byte) {
 	encoder.encrypt = newEncrypt(keyBytes[:], stream)
 }
 
+// setCompression sets underlying compression by compressID.
+// If compression is not set, the init a new one and save it.
+// If compressID is unknown or compressID changed, then return non-nil error.
+func (encoder *Encoder) setCompression(compressID uint16) error {
+	// Get compress func
+	compressFunc, found := CompressFuncByID(compressID)
+	if !found {
+		return fmt.Errorf("setCompression: unknown compression algorithm %d", compressID)
+	}
+	// If compression is nil, then set and return
+	if encoder.compression == nil {
+		encoder.compression = compressFunc()
+		return nil
+	}
+	// Check compress ID
+	if compressID != encoder.compression.EncodeCompression() {
+		return fmt.Errorf(
+			"setCompression: attempt to use another compression algorithm (origin = %d, current = %d)",
+			encoder.compression.EncodeCompression(), compressID,
+		)
+	}
+	// Return
+	return nil
+}
+
 // EnableCompression enables compression for the Encoder.
-func (encoder *Encoder) EnableCompression(compression Compression) {
-	encoder.compression = compression
-	if compression.EncodeCompression() != CompressionAlgorithmNetEase {
-		encoder.writeCompressID = true
+func (encoder *Encoder) EnableCompression(compressID uint16) {
+	_ = encoder.setCompression(compressID)
+	if encoder.compression == nil {
+		encoder.compression = DefaultCompression()
 	}
 }
 
@@ -69,7 +92,7 @@ func (encoder *Encoder) Encode(packets [][]byte) error {
 	prepend := []byte{header}
 	if encoder.compression != nil {
 		var err error
-		if encoder.writeCompressID {
+		if encoder.compression.EncodeCompression() != CompressionAlgorithmNetEase {
 			prepend = append(prepend, byte(encoder.compression.EncodeCompression()))
 		}
 		data, err = encoder.compression.Compress(data)

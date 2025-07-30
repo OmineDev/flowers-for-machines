@@ -125,7 +125,7 @@ func (cfg ListenConfig) Listen(network string, address string) (*Listener, error
 		cfg.StatusProvider = NewStatusProvider("Minecraft Server", "Gophertunnel")
 	}
 	if cfg.Compression == nil {
-		cfg.Compression = packet.DefaultCompression
+		cfg.Compression = packet.DefaultCompression()
 	}
 	if cfg.FlushRate == 0 {
 		cfg.FlushRate = time.Second / 20

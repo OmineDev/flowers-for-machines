@@ -715,18 +715,19 @@ func (conn *Conn) handleRequestNetworkSettings(pk *packet.RequestNetworkSettings
 		return fmt.Errorf("send NetworkSettings: %w", err)
 	}
 	_ = conn.Flush()
-	conn.enc.EnableCompression(conn.compression)
+	conn.enc.EnableCompression(conn.compression.EncodeCompression())
 	conn.dec.EnableCompression(math.MaxInt, true)
 	return nil
 }
 
 // handleNetworkSettings handles an incoming NetworkSettings packet, enabling compression for future packets.
 func (conn *Conn) handleNetworkSettings(pk *packet.NetworkSettings) error {
-	alg, ok := packet.CompressionByID(pk.CompressionAlgorithm)
+	compressFunc, ok := packet.CompressFuncByID(pk.CompressionAlgorithm)
 	if !ok {
 		return fmt.Errorf("unknown compression algorithm %v", pk.CompressionAlgorithm)
 	}
-	conn.enc.EnableCompression(alg)
+	alg := compressFunc()
+	conn.enc.EnableCompression(alg.EncodeCompression())
 	conn.dec.EnableCompression(
 		math.MaxInt,
 		alg.EncodeCompression() != packet.CompressionAlgorithmNetEase,

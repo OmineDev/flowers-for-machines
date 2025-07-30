@@ -23,6 +23,7 @@ type Decoder struct {
 	pr packetReader
 
 	decompress         bool
+	compression        Compression
 	readCompressID     bool
 	maxDecompressedLen int
 	encrypt            *encrypt
@@ -80,13 +81,35 @@ const (
 	maximumInBatch = 812
 )
 
+// setCompression sets underlying compression by compressID.
+// If compression is not set, the init a new one and save it.
+// If compressID is unknown or compressID changed, then return non-nil error.
+func (decoder *Decoder) setCompression(compressID uint16) error {
+	// Get compress func
+	compressFunc, found := CompressFuncByID(compressID)
+	if !found {
+		return fmt.Errorf("setCompression: unknown compression algorithm %d", compressID)
+	}
+	// If compression is nil, then set and return
+	if decoder.compression == nil {
+		decoder.compression = compressFunc()
+		return nil
+	}
+	// Check compress ID
+	if compressID != decoder.compression.EncodeCompression() {
+		return fmt.Errorf(
+			"setCompression: attempt to use another compression algorithm (origin = %d, current = %d)",
+			decoder.compression.EncodeCompression(), compressID,
+		)
+	}
+	// Return
+	return nil
+}
+
 // Decode decodes one 'packet' from the io.Reader passed in NewDecoder(), producing a slice of packets that it
 // held and an error if not successful.
 func (decoder *Decoder) Decode() (packets [][]byte, err error) {
 	var data []byte
-	var compression Compression
-	var ok bool
-
 	if decoder.pr == nil {
 		var n int
 		n, err = decoder.r.Read(decoder.buf)
@@ -114,22 +137,26 @@ func (decoder *Decoder) Decode() (packets [][]byte, err error) {
 	}
 
 	if decoder.decompress {
-		if data[0] == 0xff {
-			data = data[1:]
-		} else {
-			// If need read compress ID as the prefix
-			if decoder.readCompressID {
-				compression, ok = CompressionByID(uint16(data[0]))
+		// If need read compress ID as the prefix
+		if decoder.readCompressID {
+			if data[0] == 0xff {
+				// No need to decompress
 				data = data[1:]
 			} else {
-				compression, ok = CompressionByID(2)
+				// Set compression
+				err = decoder.setCompression(uint16(data[0]))
+				if err != nil {
+					return nil, fmt.Errorf("Decode: %v", err)
+				}
+				// Do decompress
+				data, err = decoder.compression.Decompress(data[1:], decoder.maxDecompressedLen)
+				if err != nil {
+					return nil, fmt.Errorf("decompress batch: %w", err)
+				}
 			}
-			// Check if we get the compression or not
-			if !ok {
-				return nil, fmt.Errorf("decompress batch: unknown compression algorithm %v", data[0])
-			}
-			// Do decompress
-			data, err = compression.Decompress(data, decoder.maxDecompressedLen)
+		} else {
+			_ = decoder.setCompression(CompressionAlgorithmNetEase)
+			data, err = decoder.compression.Decompress(data, decoder.maxDecompressedLen)
 			if err != nil {
 				return nil, fmt.Errorf("decompress batch: %w", err)
 			}
