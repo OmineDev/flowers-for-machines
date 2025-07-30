@@ -173,44 +173,91 @@ func (*neteaseCompression) EncodeCompression() uint16 {
 
 // Compress ...
 func (*neteaseCompression) Compress(decompressed []byte) ([]byte, error) {
-	// Get new buffer and writer
-	buf := bytes.NewBuffer(nil)
-	writer, err := flate.NewWriter(buf, flate.DefaultCompression)
-	if err != nil {
-		return nil, fmt.Errorf("Compress: %v", err)
+	// Get new buffer and writer.
+	compressed := internal.BufferPool.Get().(*bytes.Buffer)
+	w := flateCompressPool.Get().(*flate.Writer)
+
+	defer func() {
+		// Reset the buffer, so we can return it to the buffer pool safely.
+		compressed.Reset()
+		internal.BufferPool.Put(compressed)
+		flateCompressPool.Put(w)
+	}()
+
+	w.Reset(compressed)
+
+	// Write data to writer and flush.
+	if _, err := w.Write(decompressed); err != nil {
+		return nil, fmt.Errorf("netease compression: write flate writer: %w", err)
 	}
-	// Write and close writer
-	_, _ = writer.Write(decompressed)
-	_ = writer.Flush()
-	validLen := buf.Len()
-	_ = writer.Close()
-	// Return
-	return buf.Bytes()[:validLen], nil
+	if err := w.Flush(); err != nil {
+		return nil, fmt.Errorf("netease compression: flush flate writer: %w", err)
+	}
+	// Note that NetEase only accept a flate block
+	// that is have no end tag, so before we close
+	// the writer, we need to record current len of
+	// compressed.
+	validLen := compressed.Len()
+	// Now we can close the writer safely.
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("netease compression: close flate writer: %w", err)
+	}
+
+	return append([]byte{}, compressed.Bytes()[:validLen]...), nil
 }
 
 // Decompress ...
 func (n *neteaseCompression) Decompress(compressed []byte, limit int) ([]byte, error) {
-	// Create buffer
-	buf := bytes.NewBuffer(compressed)
+	// Create buffer.
+	buf := internal.BufferPool.Get().(*bytes.Buffer)
+	c := flateDecompressPool.Get().(io.ReadCloser)
+
+	defer func() {
+		// Reset the buffer, so we can return it to the buffer pool safely.
+		buf.Reset()
+		internal.BufferPool.Put(buf)
+		flateDecompressPool.Put(c)
+	}()
+
 	// The given compressed data is not completely,
-	// and we need add this suffix by hand
+	// so we need to add the suffix manually.
+	buf.Write(compressed)
 	buf.Write([]byte{0x01, 0x00, 0x00, 0xFF, 0xFF})
-	// Do decompress
-	reader := flate.NewReaderDict(buf, n.dict)
-	decompressed, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, fmt.Errorf("Decompress: %v", err)
+
+	// Do decompress.
+	if err := c.(flate.Resetter).Reset(buf, n.dict); err != nil {
+		return nil, fmt.Errorf("netease decompression: reset flate: %w", err)
 	}
+	_ = c.Close()
+
+	// Guess an uncompressed size of 2*len(compressed).
+	decompressed := bytes.NewBuffer(make([]byte, 0, len(compressed)*2))
+	if _, err := io.Copy(decompressed, io.LimitReader(c, int64(limit))); err != nil {
+		return nil, fmt.Errorf("netease decompression: decompress flate: %w", err)
+	}
+
 	// Update dict so that the next compressed
-	// block can refer data from the history
-	copyOne := make([]byte, len(decompressed))
-	copy(copyOne, decompressed)
-	n.dict = append(n.dict, copyOne...)
-	if len(n.dict) > 32768 {
-		n.dict = n.dict[len(n.dict)-32768:]
+	// block can refer data from the history.
+	maxWinLen := 32768
+	decompLen := decompressed.Len()
+	mergedLen := len(n.dict) + decompLen
+
+	if mergedLen <= maxWinLen {
+		n.dict = append(n.dict, decompressed.Bytes()...)
+	} else {
+		newDict := make([]byte, maxWinLen)
+		if decompLen >= maxWinLen {
+			copy(newDict, decompressed.Bytes()[decompLen-maxWinLen:])
+		} else {
+			// Note that you can prove oldKeep is always lower than len(n.dict).
+			oldKeep := maxWinLen - decompLen
+			copy(newDict[:oldKeep], n.dict[len(n.dict)-oldKeep:])
+			copy(newDict[oldKeep:], decompressed.Bytes())
+		}
+		n.dict = newDict
 	}
-	// Return
-	return decompressed, nil
+
+	return decompressed.Bytes(), nil
 }
 
 // init registers all valid compressions with the protocol.
