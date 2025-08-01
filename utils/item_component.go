@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
+	"github.com/df-mc/worldupgrader/itemupgrader"
 )
 
 // ItemComponent 是一个物品的物品组件数据
@@ -97,7 +98,13 @@ func ParseItemComponent(nbtMap map[string]any) (result ItemComponent) {
 				val = "minecraft:" + val
 			}
 
-			result.CanDestroy = append(result.CanDestroy, val)
+			newItem := itemupgrader.Upgrade(
+				itemupgrader.ItemMeta{
+					Name: val,
+					Meta: 0,
+				},
+			)
+			result.CanDestroy = append(result.CanDestroy, newItem.Name)
 		}
 	}
 
@@ -114,7 +121,13 @@ func ParseItemComponent(nbtMap map[string]any) (result ItemComponent) {
 				val = "minecraft:" + val
 			}
 
-			result.CanPlaceOn = append(result.CanPlaceOn, val)
+			newItem := itemupgrader.Upgrade(
+				itemupgrader.ItemMeta{
+					Name: val,
+					Meta: 0,
+				},
+			)
+			result.CanPlaceOn = append(result.CanPlaceOn, newItem.Name)
 		}
 	}
 
