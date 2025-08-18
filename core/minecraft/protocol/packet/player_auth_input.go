@@ -51,14 +51,13 @@ const (
 	InputFlagStopCrawling
 	InputFlagStartFlying
 	InputFlagStopFlying
+	InputFlagClientAckServerData
 
 	// PhoenixBuilder specific constants.
 	// Author: Happy2018new, Liliya233
 	//
-	// InputFlagClientAckServerData is in InputFlagUnknown1
-	// or InputFlagUnknown2, but we don't know
-	InputFlagUnknown1
-	InputFlagUnknown2
+	// NetEase
+	InputFlagUnknown
 
 	InputFlagClientPredictedVehicle
 	InputFlagPaddlingLeft
