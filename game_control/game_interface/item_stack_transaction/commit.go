@@ -167,7 +167,6 @@ func (i *ItemStackTransaction) Commit() (
 			channel := make(chan struct{})
 			waiters = append(waiters, channel)
 
-			handler.virtualInventories.dumpToUpdaters()
 			api.ItemStackOperation().AddNewRequest(
 				requestID,
 				handler.responseMapping.mapping,
