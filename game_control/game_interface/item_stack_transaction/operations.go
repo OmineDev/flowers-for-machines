@@ -412,8 +412,8 @@ func (i *ItemStackTransaction) Looming(
 // 并通过使用背包中 dyeSlot 处的染料合成新旗帜。
 //
 // patternName 是织布时使用的图案，patternSlot 则指示该图案物品
-// 在背包中的位置。如果无需使用图案，请将 patternName 和 patternSlot
-// 都置为默认的零值。
+// 在背包中的位置。如果使用的旗帜图案无需实际的旗帜图案物品用于合成，
+// 请将 patternSlot 置为默认的零值。
 //
 // resultItem 指示期望得到的旗帜的部分数据。
 // 如果操作成功，则新旗帜将回到原位。
