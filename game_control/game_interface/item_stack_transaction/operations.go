@@ -468,9 +468,12 @@ func (i *ItemStackTransaction) Crafting(
 	return i
 }
 
-// Trimming 将 trimItemPath 处的装备、
-// materialPath 处的材料和 templatePath
-// 处的模板放入锻造台种，并进行锻造台纹饰操作。
+// Trimming 将下面列出的物品放置在锻造台中，
+// 并进行对于的锻造台的纹饰操作。
+//
+// - trimItemPath 处的 1 个装备
+// - materialPath 处的 1 个材料
+// - templatePath 处的 1 个模板
 //
 // resultItem 指示期望得到的锻造结果数据。
 // 如果操作成功，则被锻造物品将回到原位。
@@ -492,12 +495,13 @@ func (i *ItemStackTransaction) Trimming(
 	return i
 }
 
-// Trimming 将背包中的如下物品放入锻造台中，
-// 并进行锻造台纹饰操作。
+// TrimmingFromInventory 将下面列出的，
+// 位于背包中的物品放置在锻造台中，
+// 并进行对于的锻造台的纹饰操作。
 //
-// - trimItemPath 处的装备
-// - materialPath 处的材料
-// - templatePath 处的模板
+// - trimItemSlot 处的 1 个装备
+// - materialSlot 处的 1 个材料
+// - templateSlot 处的 1 个模板
 //
 // resultItem 指示期望得到的锻造结果数据。
 // 如果操作成功，则被锻造物品将回到原位。
