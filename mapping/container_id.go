@@ -36,12 +36,13 @@ type ContainerTypeWithSlot struct {
 // 该映射是没有彻底完成的，这意味着仍然存在部分方块满足上面的叙述，但没有出现在下表中。
 // 因此，修补该表并使得其完整仍然是一个正在进行的议题
 var ContainerNeedSlotIDMapping = map[int]bool{
-	protocol.ContainerTypeFurnace:      true,
-	protocol.ContainerTypeBrewingStand: true,
-	protocol.ContainerTypeAnvil:        true,
-	protocol.ContainerTypeLoom:         true,
-	protocol.ContainerTypeBlastFurnace: true,
-	protocol.ContainerTypeSmoker:       true,
+	protocol.ContainerTypeFurnace:       true,
+	protocol.ContainerTypeBrewingStand:  true,
+	protocol.ContainerTypeAnvil:         true,
+	protocol.ContainerTypeLoom:          true,
+	protocol.ContainerTypeBlastFurnace:  true,
+	protocol.ContainerTypeSmoker:        true,
+	protocol.ContainerTypeSmithingTable: true,
 }
 
 // ContainerIDMapping 保存了一个 ContainerTypeWithSlot 到容器 ID 的映射。
@@ -77,6 +78,11 @@ var ContainerIDMapping = map[ContainerTypeWithSlot]uint8{
 	{ContainerType: protocol.ContainerTypeLoom, SlotID: 10}: protocol.ContainerLoomDye,      // 43
 	{ContainerType: protocol.ContainerTypeLoom, SlotID: 11}: protocol.ContainerLoomMaterial, // 44
 
+	// smithing table
+	{ContainerType: protocol.ContainerTypeSmithingTable, SlotID: 0x33}: protocol.ContainerSmithingTableInput,    // 3
+	{ContainerType: protocol.ContainerTypeSmithingTable, SlotID: 0x34}: protocol.ContainerSmithingTableMaterial, // 4
+	{ContainerType: protocol.ContainerTypeSmithingTable, SlotID: 0x35}: protocol.ContainerSmithingTableTemplate, // 62
+
 	// blast_furnace (lit_blast_furnace)
 	{ContainerType: protocol.ContainerTypeBlastFurnace, SlotID: 0}: protocol.ContainerBlastFurnaceIngredient, // 46
 	{ContainerType: protocol.ContainerTypeBlastFurnace, SlotID: 1}: protocol.ContainerFurnaceFuel,            // 25
@@ -107,7 +113,6 @@ var ContainerIDMapping = map[ContainerTypeWithSlot]uint8{
 	{ContainerType: protocol.ContainerTypeStonecutter}:        ContainerIDUnknown,
 	{ContainerType: protocol.ContainerTypeCartography}:        ContainerIDUnknown,
 	{ContainerType: protocol.ContainerTypeJigsawEditor}:       ContainerIDUnknown,
-	{ContainerType: protocol.ContainerTypeSmithingTable}:      ContainerIDUnknown,
 	{ContainerType: protocol.ContainerTypeChestBoat}:          ContainerIDUnknown,
 
 	// The following container can't be opened

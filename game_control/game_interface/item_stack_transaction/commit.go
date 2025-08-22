@@ -147,6 +147,8 @@ func (i *ItemStackTransaction) Commit() (
 				result, err = handler.handleLooming(op, requestID)
 			case item_stack_operation.Crafting:
 				result, err = handler.handleCrafting(op, requestID)
+			case item_stack_operation.Trimming:
+				result, err = handler.handleTrimming(op, requestID)
 			}
 			if err != nil {
 				return false, nil, nil, fmt.Errorf("Commit: %v", err)

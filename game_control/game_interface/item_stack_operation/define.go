@@ -10,6 +10,7 @@ const (
 	IDItemStackOperationHighLevelRenaming
 	IDItemStackOperationHighLevelLooming
 	IDItemStackOperationHighLevelCrafting
+	IDItemStackOperationHighLevelTrimming
 )
 
 // ItemStackOperation 指示所有实现了它的物品操作

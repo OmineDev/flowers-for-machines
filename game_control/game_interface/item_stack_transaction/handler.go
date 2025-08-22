@@ -356,14 +356,14 @@ func (i *itemStackOperationHandler) handleLooming(
 
 	// Basic check
 	if op.BannerPath == op.DyePath {
-		return nil, fmt.Errorf("handleSwap: BannerPath is equal to DyePath")
+		return nil, fmt.Errorf("handleLooming: BannerPath is equal to DyePath")
 	}
 	if op.UsePattern {
 		if op.PatternPath == op.BannerPath {
-			return nil, fmt.Errorf("handleSwap: PatternPath is equal to BannerPath")
+			return nil, fmt.Errorf("handleLooming: PatternPath is equal to BannerPath")
 		}
 		if op.PatternPath == op.DyePath {
-			return nil, fmt.Errorf("handleSwap: PatternPath is equal to DyePath")
+			return nil, fmt.Errorf("handleLooming: PatternPath is equal to DyePath")
 		}
 	}
 
@@ -579,6 +579,181 @@ func (i *itemStackOperationHandler) handleCrafting(
 	// Bind container ID
 	i.responseMapping.bind(protocol.WindowIDInventory, protocol.ContainerCombinedHotBarAndInventory)
 	i.responseMapping.bind(protocol.WindowIDCrafting, protocol.ContainerCraftingInput)
+
+	// Make runtime data
+	return op.Make(runtimeData), nil
+}
+
+// handleTrimming ..
+func (i *itemStackOperationHandler) handleTrimming(
+	op item_stack_operation.Trimming,
+	requestID resources_control.ItemStackRequestID,
+) (result []protocol.StackRequestAction, err error) {
+	// Prepare
+	runtimeData := item_stack_operation.TrimmingRuntime{
+		RequestID: int32(requestID),
+	}
+
+	// Basic check
+	if op.TrimItem == op.Material {
+		return nil, fmt.Errorf("handleTrimming: TrimItem (path) is equal to Marterial (path)")
+	}
+	if op.TrimItem == op.Template {
+		return nil, fmt.Errorf("handleTrimming: TrimItem (path) is equal to Template (path)")
+	}
+	if op.Material == op.Template {
+		return nil, fmt.Errorf("handleTrimming: Material (path) is equal to Template (path)")
+	}
+
+	// Get opening container data
+	containerData, _, existed := i.api.ContainerData()
+	if !existed {
+		return nil, fmt.Errorf("handleTrimming: Smithing table is not opened")
+	}
+
+	// Trim item
+	{
+		// Prepare
+		loomSlot := resources_control.SlotLocation{
+			WindowID: resources_control.WindowID(containerData.WindowID),
+			SlotID:   0x33,
+		}
+
+		// Get item runtime ID
+		rid, err := i.virtualInventories.loadAndSetStackNetworkID(op.TrimItem, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+		loomRID, err := i.virtualInventories.loadAndSetStackNetworkID(loomSlot, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Get container ID
+		cid, found := slotLocationToContainerID(i.api, op.TrimItem)
+		if !found {
+			return nil, fmt.Errorf("handleTrimming: Can not find the container ID of given item whose at %#v", op.TrimItem)
+		}
+
+		// Bind container ID
+		i.responseMapping.bind(op.TrimItem.WindowID, cid)
+		i.responseMapping.bind(resources_control.WindowID(containerData.WindowID), protocol.ContainerSmithingTableInput)
+
+		// Update trim item data
+		err = i.virtualInventories.updateFromUpdater(op.TrimItem, op.ResultItem)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Set runtime data (Pattern related)
+		runtimeData.TrimItemStackNetworkID = loomRID
+		runtimeData.MoveTrimItemSrcContainerID = byte(cid)
+		runtimeData.MoveTrimItemSrcStackNetworkID = rid
+	}
+
+	// Material
+	{
+		// Prepare
+		loomSlot := resources_control.SlotLocation{
+			WindowID: resources_control.WindowID(containerData.WindowID),
+			SlotID:   0x34,
+		}
+
+		// Get item runtime ID
+		rid, err := i.virtualInventories.loadAndSetStackNetworkID(op.Material, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+		loomRID, err := i.virtualInventories.loadAndSetStackNetworkID(loomSlot, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Get container ID
+		cid, found := slotLocationToContainerID(i.api, op.Material)
+		if !found {
+			return nil, fmt.Errorf("handleTrimming: Can not find the container ID of given item whose at %#v", op.Material)
+		}
+
+		// Bind container ID
+		i.responseMapping.bind(op.Material.WindowID, cid)
+		i.responseMapping.bind(resources_control.WindowID(containerData.WindowID), protocol.ContainerSmithingTableMaterial)
+
+		// Update item count
+		_, err = i.virtualInventories.loadAndAddItemCount(op.Material, -1, false)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Sync item data
+		resultCount, err := i.virtualInventories.loadItemCount(op.Material)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+		if resultCount == 0 {
+			err = i.virtualInventories.setAir(op.Material)
+			if err != nil {
+				return nil, fmt.Errorf("handleTrimming: %v", err)
+			}
+		}
+
+		// Set runtime data (Pattern related)
+		runtimeData.MaterialStackNetworkID = loomRID
+		runtimeData.MoveMaterialSrcContainerID = byte(cid)
+		runtimeData.MoveMaterialSrcStackNetworkID = rid
+	}
+
+	// Template
+	{
+		// Prepare
+		loomSlot := resources_control.SlotLocation{
+			WindowID: resources_control.WindowID(containerData.WindowID),
+			SlotID:   0x35,
+		}
+
+		// Get item runtime ID
+		rid, err := i.virtualInventories.loadAndSetStackNetworkID(op.Template, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+		loomRID, err := i.virtualInventories.loadAndSetStackNetworkID(loomSlot, requestID)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Get container ID
+		cid, found := slotLocationToContainerID(i.api, op.Template)
+		if !found {
+			return nil, fmt.Errorf("handleTrimming: Can not find the container ID of given item whose at %#v", op.Template)
+		}
+
+		// Bind container ID
+		i.responseMapping.bind(op.Template.WindowID, cid)
+		i.responseMapping.bind(resources_control.WindowID(containerData.WindowID), protocol.ContainerSmithingTableTemplate)
+
+		// Update item count
+		_, err = i.virtualInventories.loadAndAddItemCount(op.Template, -1, false)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+
+		// Sync item data
+		resultCount, err := i.virtualInventories.loadItemCount(op.Template)
+		if err != nil {
+			return nil, fmt.Errorf("handleTrimming: %v", err)
+		}
+		if resultCount == 0 {
+			err = i.virtualInventories.setAir(op.Template)
+			if err != nil {
+				return nil, fmt.Errorf("handleTrimming: %v", err)
+			}
+		}
+
+		// Set runtime data (Pattern related)
+		runtimeData.TemplateStackNetworkID = loomRID
+		runtimeData.MoveTemplateSrcContainerID = byte(cid)
+		runtimeData.MoveTemplateSrcStackNetworkID = rid
+	}
 
 	// Make runtime data
 	return op.Make(runtimeData), nil

@@ -467,3 +467,62 @@ func (i *ItemStackTransaction) Crafting(
 	})
 	return i
 }
+
+// Trimming 将 trimItemPath 处的装备、
+// materialPath 处的材料和 templatePath
+// 处的模板放入锻造台种，并进行锻造台纹饰操作。
+//
+// resultItem 指示期望得到的锻造结果数据。
+// 如果操作成功，则被锻造物品将回到原位。
+//
+// 该操作不支持内联，但它仍然可以被紧缩在单个
+// 的物品堆栈操作请求的数据包中
+func (i *ItemStackTransaction) Trimming(
+	trimItemPath resources_control.SlotLocation,
+	materialPath resources_control.SlotLocation,
+	templatePath resources_control.SlotLocation,
+	resultItem resources_control.ExpectedNewItem,
+) *ItemStackTransaction {
+	i.operations = append(i.operations, item_stack_operation.Trimming{
+		TrimItem:   trimItemPath,
+		Material:   materialPath,
+		Template:   templatePath,
+		ResultItem: resultItem,
+	})
+	return i
+}
+
+// Trimming 将背包中的如下物品放入锻造台中，
+// 并进行锻造台纹饰操作。
+//
+// - trimItemPath 处的装备
+// - materialPath 处的材料
+// - templatePath 处的模板
+//
+// resultItem 指示期望得到的锻造结果数据。
+// 如果操作成功，则被锻造物品将回到原位。
+//
+// 该操作不支持内联，但它仍然可以被紧缩在单个
+// 的物品堆栈操作请求的数据包中
+func (i *ItemStackTransaction) TrimmingFromInventory(
+	trimItemSlot resources_control.SlotID,
+	materialSlot resources_control.SlotID,
+	templateSlot resources_control.SlotID,
+	resultItem resources_control.ExpectedNewItem,
+) *ItemStackTransaction {
+	return i.Trimming(
+		resources_control.SlotLocation{
+			WindowID: protocol.WindowIDInventory,
+			SlotID:   trimItemSlot,
+		},
+		resources_control.SlotLocation{
+			WindowID: protocol.WindowIDInventory,
+			SlotID:   materialSlot,
+		},
+		resources_control.SlotLocation{
+			WindowID: protocol.WindowIDInventory,
+			SlotID:   templateSlot,
+		},
+		resultItem,
+	)
+}
