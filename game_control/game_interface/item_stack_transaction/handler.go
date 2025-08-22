@@ -645,7 +645,7 @@ func (i *itemStackOperationHandler) handleTrimming(
 			return nil, fmt.Errorf("handleTrimming: %v", err)
 		}
 
-		// Set runtime data (Pattern related)
+		// Set runtime data (TrimItem related)
 		runtimeData.TrimItemStackNetworkID = loomRID
 		runtimeData.MoveTrimItemSrcContainerID = byte(cid)
 		runtimeData.MoveTrimItemSrcStackNetworkID = rid
@@ -697,7 +697,7 @@ func (i *itemStackOperationHandler) handleTrimming(
 			}
 		}
 
-		// Set runtime data (Pattern related)
+		// Set runtime data (Material related)
 		runtimeData.MaterialStackNetworkID = loomRID
 		runtimeData.MoveMaterialSrcContainerID = byte(cid)
 		runtimeData.MoveMaterialSrcStackNetworkID = rid
@@ -749,7 +749,7 @@ func (i *itemStackOperationHandler) handleTrimming(
 			}
 		}
 
-		// Set runtime data (Pattern related)
+		// Set runtime data (Template related)
 		runtimeData.TemplateStackNetworkID = loomRID
 		runtimeData.MoveTemplateSrcContainerID = byte(cid)
 		runtimeData.MoveTemplateSrcStackNetworkID = rid
