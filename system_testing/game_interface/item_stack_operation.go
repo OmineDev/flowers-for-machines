@@ -333,5 +333,66 @@ func SystemTestingItemStackOperation() {
 		}
 	}
 
+	// Test round 7
+	{
+		api.Commands().SendSettingsCommand("clear", true)
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().SendSettingsCommand("give @s diamond_helmet 3", true) // Slot 0, 1, 2
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().SendSettingsCommand("give @s diamond 4", true) // Slot 3
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().SendSettingsCommand("give @s iron_ingot 2", true) // Slot 4
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().SendSettingsCommand("give @s tide_armor_trim_smithing_template 4", true) // Slot 5
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().SendSettingsCommand("give @s eye_armor_trim_smithing_template 2", true) // Slot 6
+		api.Commands().AwaitChangesGeneral()
+
+		err := api.SetBlock().SetBlock(protocol.BlockPos{0, 0, 0}, "minecraft:smithing_table", `[]`)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingItemStackOperation: Test round 7 failed due to %v (stage 1)", err))
+		}
+
+		success, err := api.ContainerOpenAndClose().OpenContainer(
+			game_interface.UseItemOnBlocks{
+				HotbarSlotID: 2,
+				BotPos:       mgl32.Vec3{0, 0, 0},
+				BlockPos:     [3]int32{0, 0, 0},
+				BlockName:    "minecraft:smithing_table",
+				BlockStates:  map[string]any{},
+			},
+			false,
+		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingItemStackOperation: Test round 7 failed due to %v (stage 2)", err))
+		}
+		if !success {
+			panic("SystemTestingItemStackOperation: Failed on test round 7")
+		}
+
+		success, _, _, err = api.ItemStackOperation().OpenTransaction().
+			TrimmingFromInventory(0, 3, 5, resources_control.ExpectedNewItem{}).
+			TrimmingFromInventory(1, 3, 5, resources_control.ExpectedNewItem{}).
+			TrimmingFromInventory(2, 3, 5, resources_control.ExpectedNewItem{}).
+			TrimmingFromInventory(0, 4, 5, resources_control.ExpectedNewItem{}).
+			TrimmingFromInventory(0, 3, 6, resources_control.ExpectedNewItem{}).
+			TrimmingFromInventory(1, 4, 6, resources_control.ExpectedNewItem{}).
+			DropInventoryItem(0, 1).
+			DropInventoryItem(1, 1).
+			DropInventoryItem(2, 1).
+			Commit()
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingItemStackOperation: Test round 7 failed due to %v (stage 3)", err))
+		}
+		if !success {
+			panic("SystemTestingItemStackOperation: Failed on test round 7")
+		}
+
+		err = api.ContainerOpenAndClose().CloseContainer()
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingItemStackOperation: Test round 7 failed due to %v (stage 4)", err))
+		}
+	}
+
 	pterm.Success.Printfln("SystemTestingItemStackOperation: PASS (Time used = %v)", time.Since(tA))
 }

@@ -56,7 +56,7 @@ func (t Trimming) Make(runtimeData MakingRuntime) []protocol.StackRequestAction 
 	moveTemplate.Count = 1
 	moveTemplate.Source = protocol.StackRequestSlotInfo{
 		ContainerID:    data.MoveTemplateSrcContainerID,
-		Slot:           byte(t.Material.SlotID),
+		Slot:           byte(t.Template.SlotID),
 		StackNetworkID: data.MoveTemplateSrcStackNetworkID,
 	}
 	moveTemplate.Destination = protocol.StackRequestSlotInfo{
