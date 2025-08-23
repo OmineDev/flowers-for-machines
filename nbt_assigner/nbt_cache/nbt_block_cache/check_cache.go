@@ -21,7 +21,7 @@ func (n *NBTBlockCache) CheckCache(hashNumber nbt_hash.CompletelyHashNumber) (
 		return StructureNBTBlock{}, false, false
 	}
 
-	cache, ok = n.setHashCache[hashNumber.HashNumber]
+	cache, ok = n.setHashCache[hashNumber.SetHashNumber]
 	if ok {
 		return *cache, true, true
 	}
