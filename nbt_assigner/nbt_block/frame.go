@@ -31,21 +31,21 @@ func (Frame) Offset() protocol.BlockPos {
 func (f *Frame) processComplex() (canUseCommand bool, resultSlot resources_control.SlotID, err error) {
 	api := f.console.API()
 	underlying := f.data.NBT.Item.UnderlyingItem()
-	defaultBlock := underlying.(*nbt_parser_item.DefaultItem)
+	defaultItem := underlying.(*nbt_parser_item.DefaultItem)
 
 	// 子方块
-	if defaultBlock.Block.SubBlock != nil {
-		if !defaultBlock.Block.SubBlock.NeedSpecialHandle() {
+	if defaultItem.Block.SubBlock != nil {
+		if !defaultItem.Block.SubBlock.NeedSpecialHandle() {
 			return true, 0, nil
 		}
-		_, _, _, err = nbt_assigner_interface.PlaceNBTBlock(f.console, f.cache, defaultBlock.Block.SubBlock)
+		_, _, _, err = nbt_assigner_interface.PlaceNBTBlock(f.console, f.cache, defaultItem.Block.SubBlock)
 		if err != nil {
 			return false, 0, fmt.Errorf("processComplex: %v", err)
 		}
 
 		_, hit, partHit, err := f.cache.NBTBlockCache().LoadCache(nbt_hash.CompletelyHashNumber{
-			HashNumber:    nbt_hash.NBTBlockFullHash(defaultBlock.Block.SubBlock),
-			SetHashNumber: nbt_hash.ContainerSetHash(defaultBlock.Block.SubBlock),
+			HashNumber:    nbt_hash.NBTBlockFullHash(defaultItem.Block.SubBlock),
+			SetHashNumber: nbt_hash.ContainerSetHash(defaultItem.Block.SubBlock),
 		})
 		if err != nil {
 			return false, 0, fmt.Errorf("processComplex: %v", err)
