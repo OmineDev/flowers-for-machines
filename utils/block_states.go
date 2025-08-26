@@ -85,11 +85,11 @@ func ParseBlockStatesString(blockStatesString string) (result map[string]any) {
 			continue
 		}
 
-		key := strings.ReplaceAll(temp[0], `"`, "")
+		key := strings.ReplaceAll(strings.TrimSpace(temp[0]), `"`, "")
 		if len(temp[1]) < 1 {
 			continue
 		}
-		value := temp[1]
+		value := strings.TrimSpace(temp[1])
 
 		switch value[0] {
 		case '"':
