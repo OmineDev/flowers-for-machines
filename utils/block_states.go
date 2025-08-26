@@ -78,18 +78,17 @@ func ParseBlockStatesString(blockStatesString string) (result map[string]any) {
 	result = make(map[string]any)
 
 	for state := range strings.SplitSeq(blockStatesString, ",") {
-		state = strings.TrimSpace(state)
-
-		temp := strings.Split(state, separator)
-		if len(temp) != 2 {
+		state := strings.TrimSpace(state)
+		keyAndValue := strings.Split(state, separator)
+		if len(keyAndValue) != 2 {
 			continue
 		}
 
-		key := strings.ReplaceAll(strings.TrimSpace(temp[0]), `"`, "")
-		if len(temp[1]) < 1 {
+		key := strings.ReplaceAll(strings.TrimSpace(keyAndValue[0]), `"`, "")
+		value := strings.TrimSpace(keyAndValue[1])
+		if len(value) < 1 {
 			continue
 		}
-		value := strings.TrimSpace(temp[1])
 
 		switch value[0] {
 		case '"':
