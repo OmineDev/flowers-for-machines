@@ -13,5 +13,4 @@ func main() {
 
 	// This is so complex so we don't use auto generate
 	// GenerateRandomStructrueBlock()
-
 }
