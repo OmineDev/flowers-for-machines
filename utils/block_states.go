@@ -30,23 +30,23 @@ func MarshalBlockStates(blockStates map[string]any) string {
 		return strings.Compare(a, b)
 	})
 
-	for keyIndex := range keys {
-		switch val := blockStates[keys[keyIndex]].(type) {
+	for _, keyName := range keys {
+		switch val := blockStates[keyName].(type) {
 		// e.g. "color"="orange"
 		case string:
 			result = append(result, fmt.Sprintf(
-				"%#v%s%#v", keys[keyIndex], separator, val,
+				"%#v%s%#v", keyName, separator, val,
 			))
 		// e.g. "open_bit"=true
 		case byte:
 			if val == 0 {
-				result = append(result, fmt.Sprintf("%#v%sfalse", keys[keyIndex], separator))
+				result = append(result, fmt.Sprintf("%#v%sfalse", keyName, separator))
 			} else {
-				result = append(result, fmt.Sprintf("%#v%strue", keys[keyIndex], separator))
+				result = append(result, fmt.Sprintf("%#v%strue", keyName, separator))
 			}
 		// e.g. "facing_direction"=0
 		case int32:
-			result = append(result, fmt.Sprintf("%#v%s%d", keys[keyIndex], separator, val))
+			result = append(result, fmt.Sprintf("%#v%s%d", keyName, separator, val))
 		}
 	}
 
