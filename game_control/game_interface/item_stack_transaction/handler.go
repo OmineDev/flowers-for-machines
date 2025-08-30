@@ -591,7 +591,8 @@ func (i *itemStackOperationHandler) handleTrimming(
 ) (result []protocol.StackRequestAction, err error) {
 	// Prepare
 	runtimeData := item_stack_operation.TrimmingRuntime{
-		RequestID: int32(requestID),
+		RequestID:       int32(requestID),
+		RecipeNetworkID: i.constantPacket.TrimRecipeNetworkID(),
 	}
 
 	// Basic check

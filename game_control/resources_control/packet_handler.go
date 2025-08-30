@@ -220,6 +220,8 @@ func (r *Resources) handlePacket(pk packet.Packet) {
 		r.constant.onCreativeContent(p)
 	case *packet.AvailableCommands:
 		r.constant.onAvailableCommands(p)
+	case *packet.CraftingData:
+		r.constant.onCraftingData(p)
 	}
 	// for other implements
 	r.listener.onPacket(pk)

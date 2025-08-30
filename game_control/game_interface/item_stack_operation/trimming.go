@@ -82,7 +82,7 @@ func (t Trimming) Make(runtimeData MakingRuntime) []protocol.StackRequestAction 
 		&moveMaterial,
 		&moveTemplate,
 		&protocol.CraftRecipeStackRequestAction{
-			RecipeNetworkID: 0x1cb,
+			RecipeNetworkID: data.RecipeNetworkID,
 		},
 		&protocol.ConsumeStackRequestAction{
 			DestroyStackRequestAction: protocol.DestroyStackRequestAction{

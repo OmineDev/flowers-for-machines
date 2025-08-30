@@ -10,6 +10,8 @@ import (
 	"github.com/pterm/pterm"
 )
 
+// ------------------------- Define -------------------------
+
 // DebugPrintUnknownItem 指示在调用 ItemCanGetByCommand 之后，
 // 若 ItemCanGetByCommand 返回假，是否需要在控制台打印相应的警告
 const DebugPrintUnknownItem = true
@@ -29,6 +31,8 @@ type ConstantPacket struct {
 	// 所有可通过指令获得的物品
 	commandItems        []string
 	commandItemsMapping map[string]bool
+	// 锻造台合成配方的网络 ID
+	trimRecipeNetworkID uint32
 }
 
 // NewConstantPacket 创建并返回一个新的 ConstantPacket
@@ -45,6 +49,8 @@ func NewConstantPacket() *ConstantPacket {
 		commandItemsMapping:  make(map[string]bool),
 	}
 }
+
+// ------------------------- Creative Content -------------------------
 
 // AllCreativeContent 返回租赁服在登录序列发送的创造物品数据。
 // 使用者不应修改返回的值，否则不保证程序的行为是正确的
@@ -87,6 +93,8 @@ func (c *ConstantPacket) onCreativeContent(p *packet.CreativeContent) {
 	}
 }
 
+// ------------------------- All Items -------------------------
+
 // AllAvailableItems 返回租赁服在登录序列发送的所有可用物品。
 // 使用者不应修改返回的值，否则不保证程序的行为是正确的
 func (c ConstantPacket) AllAvailableItems() []protocol.ItemEntry {
@@ -124,6 +132,8 @@ func (c *ConstantPacket) updateByGameData(data minecraft.GameData) {
 		c.itemNameMappingInv[index] = item.Name
 	}
 }
+
+// ------------------------- Item Can Get By Commands -------------------------
 
 // AllCommandItems 返回可以通过指令获得的全部物品。
 // 使用者不应修改返回的值，否则不保证程序的行为是正确的
@@ -171,4 +181,20 @@ func (c *ConstantPacket) onAvailableCommands(p *packet.AvailableCommands) {
 	}
 
 	panic("onAvailableCommands: Should nerver happened")
+}
+
+// ------------------------- Trim Recipe Network ID -------------------------
+
+// TrimRecipeNetworkID 返回锻造台纹饰操作对应的合成 ID
+func (c *ConstantPacket) TrimRecipeNetworkID() uint32 {
+	return c.trimRecipeNetworkID
+}
+
+// onCraftingData ..
+func (c *ConstantPacket) onCraftingData(p *packet.CraftingData) {
+	for _, recipe := range p.Recipes {
+		if data, ok := recipe.(*protocol.SmithingTrimRecipe); ok {
+			c.trimRecipeNetworkID = data.RecipeNetworkID
+		}
+	}
 }

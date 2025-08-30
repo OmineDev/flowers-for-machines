@@ -76,7 +76,8 @@ type LoomingRuntime struct {
 
 // TrimmingRuntime 是将锻造台纹饰操作内联为物品堆栈操作请求的运行时结构体
 type TrimmingRuntime struct {
-	RequestID int32
+	RequestID       int32
+	RecipeNetworkID uint32
 
 	TrimItemStackNetworkID        int32
 	MoveTrimItemSrcContainerID    byte
