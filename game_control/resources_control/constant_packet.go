@@ -31,7 +31,7 @@ type ConstantPacket struct {
 	// 所有可通过指令获得的物品
 	commandItems        []string
 	commandItemsMapping map[string]bool
-	// 锻造台合成配方的网络 ID
+	// 锻造台纹饰操作对应合成配方的网络 ID
 	trimRecipeNetworkID uint32
 }
 
@@ -198,3 +198,5 @@ func (c *ConstantPacket) onCraftingData(p *packet.CraftingData) {
 		}
 	}
 }
+
+// ------------------------- End -------------------------
