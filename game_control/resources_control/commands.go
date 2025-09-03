@@ -76,12 +76,12 @@ func (c *CommandRequestCallback) onCommandOutput(p *packet.CommandOutput) {
 }
 
 // handleConnClose ..
-func (c *CommandRequestCallback) handleConnClose(connCloseErr error) {
+func (c *CommandRequestCallback) handleConnClose(err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for requestID, cb := range c.callback {
-		go cb(nil, connCloseErr)
+		go cb(nil, err)
 		c.callback[requestID] = nil
 	}
 

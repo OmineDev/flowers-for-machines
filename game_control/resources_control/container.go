@@ -175,15 +175,15 @@ func (c *ContainerManager) onContainerClose(p *packet.ContainerClose) {
 }
 
 // handleConnClose ..
-func (c *ContainerManager) handleConnClose(connCloseErr error) {
+func (c *ContainerManager) handleConnClose(err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.openCallback != nil {
-		go c.openCallback(connCloseErr)
+		go c.openCallback(err)
 	}
 	if c.closeCallback != nil {
-		go c.closeCallback(false, connCloseErr)
+		go c.closeCallback(false, err)
 	}
 
 	c.states = ContainerStatesHaveNotOpen

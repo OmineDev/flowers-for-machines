@@ -134,7 +134,7 @@ func (r *Resources) handleItemStackResponse(p *packet.ItemStackResponse) {
 		}
 		delete(r.itemStack.itemStackMapping, requestID)
 
-		itemUpdater, _ := r.itemStack.itemStackUpdater[requestID]
+		itemUpdater := r.itemStack.itemStackUpdater[requestID]
 		delete(r.itemStack.itemStackUpdater, requestID)
 
 		if response.Status != protocol.ItemStackResponseStatusOK {
