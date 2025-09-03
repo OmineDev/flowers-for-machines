@@ -19,14 +19,20 @@ func SystemTestingCommands() {
 		channel := make(chan struct{})
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDText},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingCommands: `SendChat` failed due to %v", connCloseErr))
+				}
 				if p.(*packet.Text).Message == "System Testing" {
 					doOnce.Do(func() { close(channel) })
 				}
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingCommands: `SendChat` failed due to %v", err))
+		}
 		api.Commands().SendChat("System Testing")
 
 		timer := time.NewTimer(time.Second * 5)
@@ -62,12 +68,18 @@ func SystemTestingCommands() {
 		channel := make(chan struct{})
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDGameRulesChanged},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingCommands: `SendSettingsCommand` failed due to %v", connCloseErr))
+				}
 				doOnce.Do(func() { close(channel) })
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingCommands: `SendSettingsCommand` failed due to %v", err))
+		}
 
 		api.Commands().SendSettingsCommand("gamemode 1", false)
 		api.Commands().SendSettingsCommand("gamerule sendcommandfeedback false", false)
@@ -89,14 +101,21 @@ func SystemTestingCommands() {
 		channel := make(chan struct{})
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDText},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingCommands: `SendPlayerCommand` failed due to %v", connCloseErr))
+				}
 				if p.(*packet.Text).Message == "System Testing" {
 					doOnce.Do(func() { close(channel) })
 				}
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingCommands: `SendPlayerCommand` failed due to %v", err))
+		}
+
 		api.Commands().SendPlayerCommand(fmt.Sprintf("msg @s %s", "System Testing"))
 
 		timer := time.NewTimer(time.Second * 5)
@@ -114,14 +133,20 @@ func SystemTestingCommands() {
 		channel := make(chan struct{})
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDText},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingCommands: `SendWSCommand` failed due to %v", connCloseErr))
+				}
 				if p.(*packet.Text).Message == "System Testing" {
 					doOnce.Do(func() { close(channel) })
 				}
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingCommands: `SendWSCommand` failed due to %v", err))
+		}
 		api.Commands().SendWSCommand(fmt.Sprintf("msg @s %s", "System Testing"))
 
 		timer := time.NewTimer(time.Second * 5)
@@ -159,14 +184,20 @@ func SystemTestingCommands() {
 		channel := make(chan struct{})
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDSetTitle},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingCommands: `Title` failed due to %v", connCloseErr))
+				}
 				if strings.Contains(p.(*packet.SetTitle).Text, "System Testing") {
 					doOnce.Do(func() { close(channel) })
 				}
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingCommands: `Title` failed due to %v", err))
+		}
 		api.Commands().Title("System Testing")
 
 		timer := time.NewTimer(time.Second * 5)

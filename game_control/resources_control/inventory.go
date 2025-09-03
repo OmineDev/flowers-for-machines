@@ -6,7 +6,6 @@ import (
 	"maps"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
-	"github.com/OmineDev/flowers-for-machines/utils"
 )
 
 // ------------------------- Type define -------------------------
@@ -25,9 +24,8 @@ type (
 	// Inventories 描述机器人已打开(或持有)的所有库存，
 	// 例如背包、副手和胸甲
 	Inventories struct {
-		mu       *sync.RWMutex
-		mapping  map[WindowID]*Inventory
-		callback utils.SyncMap[SlotLocation, *utils.MultipleCallback[*protocol.ItemInstance]]
+		mu      *sync.RWMutex
+		mapping map[WindowID]*Inventory
 	}
 
 	// SlotLocation 描述一个物品的所在的位置
@@ -220,64 +218,6 @@ func (i *Inventories) setItemStack(windowID WindowID, slotID SlotID, item *proto
 		inventory.setItemStack(slotID, item)
 		break
 	}
-}
-
-// ------------------------- Inventories & Callback -------------------------
-
-// SetCallback 设置当位于窗口 ID 为 windowID 且槽位索引为 slotID 的发生变化时，
-// 应当执行的回调函数 f。item 是变化后得到的新物品。
-//
-// uniqueID 指示回调函数获得的唯一标识，稍后可以使用 CancelCallback 撤销。
-// 应当说明的是，如果 f 被回调，那么内部实现将会进行撤销。
-//
-// 值得说明的是，SetCallback 与物品堆栈操作请求是无关的，它们使用另外的回调实现
-func (i *Inventories) SetCallback(windowID WindowID, slotID SlotID, f func(item *protocol.ItemInstance)) (uniqueID string) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	multipleCallback, _ := i.callback.LoadOrStore(
-		SlotLocation{WindowID: windowID, SlotID: slotID},
-		utils.NewMultipleCallback[*protocol.ItemInstance](),
-	)
-	return multipleCallback.Append(f)
-}
-
-// CancelCallback 将已经设置在窗口 ID 为 windowID 且槽位索引为 slotID 的回调函数撤销，
-// uniqueID 指示该函数的唯一标识。如果未能找到，则不执行任何操作
-func (i *Inventories) CancelCallback(windowID WindowID, slotID SlotID, uniqueID string) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	multipleCallback, ok := i.callback.Load(SlotLocation{WindowID: windowID, SlotID: slotID})
-	if !ok {
-		return
-	}
-
-	multipleCallback.Destory(uniqueID)
-}
-
-// onItemChange ..
-func (i *Inventories) onItemChange(windowID WindowID, slotID SlotID, item *protocol.ItemInstance) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if item.Stack.NetworkID == -1 {
-		_, ok := i.mapping[windowID]
-		if !ok {
-			return
-		}
-		_, ok = i.mapping[windowID].mapping[slotID]
-		if !ok {
-			return
-		}
-		item = i.mapping[windowID].mapping[slotID]
-	}
-
-	multipleCallback, existed := i.callback.Load(SlotLocation{WindowID: windowID, SlotID: slotID})
-	if !existed {
-		return
-	}
-
-	multipleCallback.FinishAll(item)
 }
 
 // ------------------------- End -------------------------

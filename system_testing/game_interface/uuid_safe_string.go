@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -26,14 +27,20 @@ func SystemTestingUUIDSafeString() {
 		}
 
 		doOnce := new(sync.Once)
-		uniqueID := api.PacketListener().ListenPacket(
+		uniqueID, err := api.PacketListener().ListenPacket(
 			[]uint32{packet.IDText},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
+				if connCloseErr != nil {
+					panic(fmt.Sprintf("SystemTestingUUIDSafeString: Failed due to %v", connCloseErr))
+				}
 				if p.(*packet.Text).Message == chatContent {
 					doOnce.Do(func() { close(channel) })
 				}
 			},
 		)
+		if err != nil {
+			panic(fmt.Sprintf("SystemTestingUUIDSafeString: Failed due to %v", err))
+		}
 		api.Commands().SendChat(chatContent)
 
 		timer := time.NewTimer(time.Second * 5)

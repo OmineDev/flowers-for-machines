@@ -115,6 +115,7 @@ func (i *ItemStackTransaction) Commit() (
 			)
 
 			idx := index
+			doOnce := new(sync.Once)
 			channel := make(chan struct{})
 			waiters = append(waiters, channel)
 
@@ -122,11 +123,13 @@ func (i *ItemStackTransaction) Commit() (
 				requestID,
 				handler.responseMapping.mapping,
 				handler.virtualInventories.dumpToUpdaters(),
-				func(response *protocol.ItemStackResponse) {
-					mu.Lock()
-					defer mu.Unlock()
-					serverResponse[idx] = response
-					close(channel)
+				func(response *protocol.ItemStackResponse, connCloseErr error) {
+					doOnce.Do(func() {
+						mu.Lock()
+						defer mu.Unlock()
+						serverResponse[idx] = response
+						close(channel)
+					})
 				},
 			)
 			continue
@@ -166,6 +169,7 @@ func (i *ItemStackTransaction) Commit() (
 			pk.Requests = append(pk.Requests, newRequest)
 
 			idx := index
+			doOnce := new(sync.Once)
 			channel := make(chan struct{})
 			waiters = append(waiters, channel)
 
@@ -173,11 +177,13 @@ func (i *ItemStackTransaction) Commit() (
 				requestID,
 				handler.responseMapping.mapping,
 				handler.virtualInventories.dumpToUpdaters(),
-				func(response *protocol.ItemStackResponse) {
-					mu.Lock()
-					defer mu.Unlock()
-					serverResponse[idx] = response
-					close(channel)
+				func(response *protocol.ItemStackResponse, connCloseErr error) {
+					doOnce.Do(func() {
+						mu.Lock()
+						defer mu.Unlock()
+						serverResponse[idx] = response
+						close(channel)
+					})
 				},
 			)
 		}
@@ -194,8 +200,12 @@ func (i *ItemStackTransaction) Commit() (
 		<-waiter
 	}
 
-	// Setp 5.1: Return unsuccess
+	// Step 5.1: Check failed and return if failed
 	for _, response := range serverResponse {
+		if response == nil {
+			_ = i.Discord()
+			return false, nil, nil, fmt.Errorf("Commit: Commit item stack transaction on closed connection")
+		}
 		if response.Status != protocol.ItemStackResponseStatusOK {
 			_ = i.Discord()
 			return false, pk, serverResponse, nil

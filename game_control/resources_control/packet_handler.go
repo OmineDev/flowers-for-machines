@@ -87,7 +87,6 @@ func (r *Resources) handleInventoryContent(p *packet.InventoryContent) {
 	for key, value := range p.Content {
 		slotID := SlotID(key)
 		r.inventory.setItemStack(windowID, slotID, &value)
-		r.inventory.onItemChange(windowID, slotID, &value)
 	}
 }
 
@@ -99,7 +98,6 @@ func (r *Resources) handleInventoryTransaction(p *packet.InventoryTransaction) {
 		}
 		windowID, slotID := WindowID(value.WindowID), SlotID(value.InventorySlot)
 		r.inventory.setItemStack(windowID, slotID, &value.NewItem)
-		r.inventory.onItemChange(windowID, slotID, &value.NewItem)
 	}
 }
 
@@ -107,28 +105,41 @@ func (r *Resources) handleInventoryTransaction(p *packet.InventoryTransaction) {
 func (r *Resources) handleInventorySlot(p *packet.InventorySlot) {
 	windowID, slotID := WindowID(p.WindowID), SlotID(p.Slot)
 	r.inventory.setItemStack(windowID, slotID, &p.NewItem)
-	r.inventory.onItemChange(windowID, slotID, &p.NewItem)
 }
 
 // item stack request
 func (r *Resources) handleItemStackResponse(p *packet.ItemStackResponse) {
+	r.itemStack.mu.Lock()
+	defer r.itemStack.mu.Unlock()
+
+	select {
+	case <-r.itemStack.ctx.Done():
+		return
+	default:
+	}
+
 	for _, response := range p.Responses {
 		requestID := ItemStackRequestID(response.RequestID)
 		itemRepeatChecker := make(map[SlotLocation]bool)
 
-		callback, ok := r.itemStack.itemStackCallback.LoadAndDelete(requestID)
+		callback, ok := r.itemStack.itemStackCallback[requestID]
 		if !ok {
 			panic(fmt.Sprintf("handleItemStackResponse: Item stack request with id %d set no callback", response.RequestID))
 		}
-		containerIDToWindowID, ok := r.itemStack.itemStackMapping.LoadAndDelete(requestID)
+		delete(r.itemStack.itemStackCallback, requestID)
+
+		containerIDToWindowID, ok := r.itemStack.itemStackMapping[requestID]
 		if !ok {
 			panic(fmt.Sprintf("handleItemStackResponse: Item stack request with id %d set no container ID to Window ID mapping", response.RequestID))
 		}
-		itemUpdater, _ := r.itemStack.itemStackUpdater.LoadAndDelete(requestID)
+		delete(r.itemStack.itemStackMapping, requestID)
+
+		itemUpdater, _ := r.itemStack.itemStackUpdater[requestID]
+		delete(r.itemStack.itemStackUpdater, requestID)
 
 		if response.Status != protocol.ItemStackResponseStatusOK {
 			resp := response
-			go callback(&resp)
+			go callback(&resp, nil)
 			continue
 		}
 
@@ -171,7 +182,7 @@ func (r *Resources) handleItemStackResponse(p *packet.ItemStackResponse) {
 		}
 
 		resp := response
-		go callback(&resp)
+		go callback(&resp, nil)
 	}
 }
 
@@ -225,4 +236,12 @@ func (r *Resources) handlePacket(pk packet.Packet) {
 	}
 	// for other implements
 	r.listener.onPacket(pk)
+}
+
+// handleConnClose ..
+func (r *Resources) handleConnClose(err error) {
+	r.commands.handleConnClose(err)
+	r.itemStack.handleConnClose(err)
+	r.container.handleConnClose(err)
+	r.listener.handleConnClose(err)
 }

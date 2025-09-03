@@ -39,12 +39,13 @@ type Resources struct {
 // 否则可能会出现未知的竞态条件问题，因为资源管理器本身也会
 // 不断的读取数据包并依此更新其自身的资源数据
 func NewResourcesControl(client *client.Client) *Resources {
+	clientCtx := client.Conn().Context()
 	resourcesControl := &Resources{
 		client:    client,
-		commands:  NewCommandRequestCallback(),
-		itemStack: NewItemStackOperationManager(),
-		container: NewContainerManager(),
-		listener:  NewPacketListener(),
+		commands:  NewCommandRequestCallback(clientCtx),
+		itemStack: NewItemStackOperationManager(clientCtx),
+		container: NewContainerManager(clientCtx),
+		listener:  NewPacketListener(clientCtx),
 	}
 
 	inventory := NewInventories()
@@ -72,6 +73,7 @@ func (r *Resources) listenPacket() {
 	for {
 		pk, err := r.client.Conn().ReadPacket()
 		if err != nil {
+			r.handleConnClose(err)
 			return
 		}
 		r.handlePacket(pk)

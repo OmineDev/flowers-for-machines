@@ -51,6 +51,7 @@ func (c *ContainerOpenAndClose) openContainer(
 	changeToTargetSlot func() error,
 	openFunc func() error,
 ) (success bool, err error) {
+	var terminalErr error
 	api := c.api.Container()
 
 	for {
@@ -72,15 +73,19 @@ func (c *ContainerOpenAndClose) openContainer(
 	channel := make(chan struct{})
 	api.SetContainerOpenCallback(
 		expectedContainerID,
-		func() {
+		func(connCloseErr error) {
 			doOnce.Do(func() {
-				success = true
+				if connCloseErr != nil {
+					terminalErr = connCloseErr
+				} else {
+					success = true
+				}
 				close(channel)
 			})
 		},
 	)
 	api.SetContainerCloseCallback(
-		func(isServerSide bool) {
+		func(isServerSide bool, connCloseErr error) {
 			c.mu.Lock()
 			defer c.mu.Unlock()
 			c.occupy.TryLock()
@@ -96,6 +101,8 @@ func (c *ContainerOpenAndClose) openContainer(
 	}
 
 	for range MaxRetryContainerOpen {
+		var shouldBreak bool
+
 		err = openFunc()
 		if err != nil {
 			return false, fmt.Errorf("openContainer: %v", err)
@@ -103,14 +110,20 @@ func (c *ContainerOpenAndClose) openContainer(
 
 		timer := time.NewTimer(DefaultTimeoutContainerOpen)
 		defer timer.Stop()
-
 		select {
 		case <-timer.C:
 		case <-channel:
-			return
+			shouldBreak = true
+		}
+
+		if shouldBreak {
+			break
 		}
 	}
 
+	if terminalErr != nil {
+		return false, fmt.Errorf("openContainer: %v", err)
+	}
 	return
 }
 
@@ -181,6 +194,7 @@ func (c *ContainerOpenAndClose) OpenInventory() (success bool, err error) {
 // CloseContainer 关闭已打开的容器，
 // 可以确保它在逻辑上是线程安全的
 func (c *ContainerOpenAndClose) CloseContainer() error {
+	var terminalErr error
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -196,8 +210,11 @@ func (c *ContainerOpenAndClose) CloseContainer() error {
 	doOnce := new(sync.Once)
 	channel := make(chan struct{})
 	c.api.Container().SetContainerCloseCallback(
-		func(isServerSide bool) {
-			doOnce.Do(func() { close(channel) })
+		func(isServerSide bool, connCloseErr error) {
+			doOnce.Do(func() {
+				terminalErr = connCloseErr
+				close(channel)
+			})
 		},
 	)
 
@@ -208,5 +225,9 @@ func (c *ContainerOpenAndClose) CloseContainer() error {
 
 	<-channel
 	c.occupy.Unlock()
+
+	if terminalErr != nil {
+		return fmt.Errorf("CloseContainer: %v", terminalErr)
+	}
 	return nil
 }

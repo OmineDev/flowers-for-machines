@@ -348,16 +348,25 @@ func (b *BotClick) PickBlock(
 	packetListener := b.r.PacketListener()
 
 	for range MaxRetryBlockPick {
-		uniqueID := packetListener.ListenPacket(
+		var terminalErr error
+
+		uniqueID, err := packetListener.ListenPacket(
 			[]uint32{packet.IDPlayerHotBar},
-			func(p packet.Packet) {
+			func(p packet.Packet, connCloseErr error) {
 				doOnce.Do(func() {
-					slot = resources_control.SlotID(p.(*packet.PlayerHotBar).SelectedHotBarSlot)
-					success = true
+					if connCloseErr != nil {
+						terminalErr = connCloseErr
+					} else {
+						slot = resources_control.SlotID(p.(*packet.PlayerHotBar).SelectedHotBarSlot)
+						success = true
+					}
 					close(channel)
 				})
 			},
 		)
+		if err != nil {
+			return false, 0, fmt.Errorf("PickBlock: %v", err)
+		}
 
 		err = b.r.WritePacket(&packet.BlockPickRequest{
 			Position:    pos,
@@ -377,6 +386,9 @@ func (b *BotClick) PickBlock(
 		}
 		packetListener.DestroyListener(uniqueID)
 
+		if terminalErr != nil {
+			return false, 0, fmt.Errorf("PickBlock: %v", terminalErr)
+		}
 		if success {
 			break
 		}

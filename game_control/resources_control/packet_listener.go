@@ -1,6 +1,8 @@
 package resources_control
 
 import (
+	"context"
+	"fmt"
 	"sync"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol/packet"
@@ -10,22 +12,29 @@ import (
 
 // singleListener 是单个数据包的监听器
 type singleListener struct {
-	uniqueID string                // 该监听器的唯一标识符
-	callback func(p packet.Packet) // 该监听器的回调函数
+	// 该监听器的唯一标识符
+	uniqueID string
+	// 该监听器的回调函数
+	callback func(
+		p packet.Packet,
+		connCloseErr error,
+	)
 }
 
 // PacketListener 实现了一个可撤销监听的，
 // 相对基础的数据包监听器
 type PacketListener struct {
 	mu                      *sync.Mutex
+	ctx                     context.Context
 	anyPacketListeners      []singleListener
 	specificPacketListeners map[uint32][]singleListener
 }
 
-// NewPacketListener 创建并返回一个新的 NewPacketListener
-func NewPacketListener() *PacketListener {
+// NewPacketListener 基于 ctx 创建并返回一个新的 NewPacketListener
+func NewPacketListener(ctx context.Context) *PacketListener {
 	return &PacketListener{
 		mu:                      new(sync.Mutex),
+		ctx:                     ctx,
 		anyPacketListeners:      nil,
 		specificPacketListeners: make(map[uint32][]singleListener),
 	}
@@ -34,16 +43,25 @@ func NewPacketListener() *PacketListener {
 // ListenPacket 监听数据包 ID 在 packetID 中的数据包，
 // 并在收到这些数据包后执行回调函数 callback。
 //
+// 特别地，如果底层 Raknet 连接关闭，
+// 则传入 callback 的 connCloseErr 不为 nil。
+//
 // 如果 packetID 置空，则监听所有数据包。
 //
 // 返回的 uniqueID 用于标识该监听器，以便于
 // 后续调用 DestroyListener 以手动销毁监听器
 func (p *PacketListener) ListenPacket(
 	packetID []uint32,
-	callback func(p packet.Packet),
-) (uniqueID string) {
+	callback func(p packet.Packet, connCloseErr error),
+) (uniqueID string, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	select {
+	case <-p.ctx.Done():
+		return "", fmt.Errorf("ListenPacket: Listen packet on closed connection")
+	default:
+	}
 
 	uniqueID = uuid.NewString()
 	listener := singleListener{
@@ -70,6 +88,12 @@ func (p *PacketListener) ListenPacket(
 func (p *PacketListener) DestroyListener(uniqueID string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	select {
+	case <-p.ctx.Done():
+		return
+	default:
+	}
 
 	// Any packet listener
 	{
@@ -138,13 +162,41 @@ func (p *PacketListener) onPacket(pk packet.Packet) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	select {
+	case <-p.ctx.Done():
+		return
+	default:
+	}
+
 	// Any packet listener
 	for _, listeners := range p.anyPacketListeners {
-		go listeners.callback(pk)
+		go listeners.callback(pk, nil)
 	}
 
 	// Specific packet listener
 	for _, listener := range p.specificPacketListeners[pk.ID()] {
-		go listener.callback(pk)
+		go listener.callback(pk, nil)
 	}
+}
+
+// handleConnClose ..
+func (p *PacketListener) handleConnClose(err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// Any packet listener
+	for _, listeners := range p.anyPacketListeners {
+		go listeners.callback(nil, err)
+	}
+
+	// Specific packet listener
+	for packetID, listeners := range p.specificPacketListeners {
+		for _, listener := range listeners {
+			go listener.callback(nil, err)
+		}
+		p.specificPacketListeners[packetID] = nil
+	}
+
+	p.anyPacketListeners = nil
+	p.specificPacketListeners = nil
 }

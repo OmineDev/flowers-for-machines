@@ -1,7 +1,9 @@
 package resources_control
 
 import (
-	"sync/atomic"
+	"context"
+	"fmt"
+	"sync"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/utils"
@@ -103,27 +105,39 @@ type (
 
 	// ItemStackOperationManager 是所有物品堆栈操作的管理者
 	ItemStackOperationManager struct {
+		// mu 阻止可能的并发读写
+		mu *sync.Mutex
+		// ctx 指示底层 Raknet 连接是否已被关闭
+		ctx context.Context
 		// currentItemStackRequestID 是目前物品堆栈请求的累计 RequestID 计数
 		currentItemStackRequestID int32
 		// itemStackMapping 存放每个物品堆栈操作请求中的 ItemStackResponseMapping
-		itemStackMapping utils.SyncMap[ItemStackRequestID, ItemStackResponseMapping]
+		itemStackMapping map[ItemStackRequestID]ItemStackResponseMapping
 		// itemStackUpdater 存放每个物品堆栈操作请求中相关物品的更新函数
-		itemStackUpdater utils.SyncMap[ItemStackRequestID, map[SlotLocation]ExpectedNewItem]
+		itemStackUpdater map[ItemStackRequestID]map[SlotLocation]ExpectedNewItem
 		// itemStackCallback 存放所有物品堆栈操作请求的回调函数
-		itemStackCallback utils.SyncMap[ItemStackRequestID, func(response *protocol.ItemStackResponse)]
+		itemStackCallback map[ItemStackRequestID]func(response *protocol.ItemStackResponse, connCloseErr error)
 	}
 )
 
-// NewItemStackOperationManager 创建并返回一个新的 ItemStackOperationManager
-func NewItemStackOperationManager() *ItemStackOperationManager {
+// NewItemStackOperationManager 根据 ctx 创建并返回一个新的 ItemStackOperationManager
+func NewItemStackOperationManager(ctx context.Context) *ItemStackOperationManager {
 	return &ItemStackOperationManager{
+		mu:                        new(sync.Mutex),
+		ctx:                       ctx,
 		currentItemStackRequestID: 1,
+		itemStackMapping:          make(map[ItemStackRequestID]ItemStackResponseMapping),
+		itemStackUpdater:          make(map[ItemStackRequestID]map[SlotLocation]ExpectedNewItem),
+		itemStackCallback:         make(map[ItemStackRequestID]func(response *protocol.ItemStackResponse, connCloseErr error)),
 	}
 }
 
 // NewRequestID 返回一个可以独立使用的新 RequestID
 func (i *ItemStackOperationManager) NewRequestID() ItemStackRequestID {
-	return ItemStackRequestID(atomic.AddInt32(&i.currentItemStackRequestID, -2))
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.currentItemStackRequestID -= 2
+	return ItemStackRequestID(i.currentItemStackRequestID)
 }
 
 // AddNewRequest 设置一个即将发送的物品堆栈操作请求的钩子函数。
@@ -133,18 +147,45 @@ func (i *ItemStackOperationManager) NewRequestID() ItemStackRequestID {
 // 需要说明的是，它不必为单个物品堆栈请求中所涉及的所有物品都设置 ExpectedNewItem。
 // 就目前而言，只有 NBT 会因物品堆栈操作而发生变化的物品需要这么操作。
 //
-// callback 是收到服务器响应后应该执行的回调函数
+// callback 是收到服务器响应后应该执行的回调函数。
+// 特别地，如果底层 Raknet 连接关闭，则传入 callback 的 connCloseErr 不为 nil
 func (i *ItemStackOperationManager) AddNewRequest(
 	requestID ItemStackRequestID,
 	mapping ItemStackResponseMapping,
 	updater map[SlotLocation]ExpectedNewItem,
-	callback func(response *protocol.ItemStackResponse),
+	callback func(response *protocol.ItemStackResponse, connCloseErr error),
 ) {
-	i.itemStackMapping.Store(requestID, mapping)
-	i.itemStackCallback.Store(requestID, callback)
-	if len(updater) > 0 {
-		i.itemStackUpdater.Store(requestID, updater)
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	select {
+	case <-i.ctx.Done():
+		go callback(nil, fmt.Errorf("AddNewRequest: Add new request on closed connection"))
+		return
+	default:
 	}
+
+	i.itemStackMapping[requestID] = mapping
+	i.itemStackCallback[requestID] = callback
+	if len(updater) > 0 {
+		i.itemStackUpdater[requestID] = updater
+	}
+}
+
+// handleConnClose ..
+func (i *ItemStackOperationManager) handleConnClose(err error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	for requestID, cb := range i.itemStackCallback {
+		go cb(nil, err)
+		i.itemStackCallback[requestID] = nil
+	}
+
+	i.currentItemStackRequestID = 1
+	i.itemStackMapping = nil
+	i.itemStackUpdater = nil
+	i.itemStackCallback = nil
 }
 
 // UpdateNetworkItem 通过 serverResponse 和 clientExpected 共同评估 item 的新值。

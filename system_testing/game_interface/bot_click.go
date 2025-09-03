@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/game_control/game_interface"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -30,17 +29,6 @@ func SystemTestingBotClick() {
 		api.Commands().SendSettingsCommand(`setblock 0 0 0 glow_frame ["facing_direction"=1]`, true)
 		api.Commands().AwaitChangesGeneral()
 
-		channel := make(chan struct{})
-		uniqueID := api.Resources().Inventories().SetCallback(
-			0, 2,
-			func(item *protocol.ItemInstance) {
-				if item.Stack.Count != 9 {
-					panic("SystemTestingBotClick: `ClickBlock` failed")
-				}
-				close(channel)
-			},
-		)
-
 		api.BotClick().ClickBlock(
 			game_interface.UseItemOnBlocks{
 				HotbarSlotID: 2,
@@ -54,14 +42,12 @@ func SystemTestingBotClick() {
 				},
 			},
 		)
+		api.Commands().AwaitChangesGeneral()
+		api.Commands().AwaitChangesGeneral()
 
-		timer := time.NewTimer(time.Second * 5)
-		defer timer.Stop()
-		select {
-		case <-timer.C:
-			panic("SystemTestingBotClick: `ClickBlock` time out")
-		case <-channel:
-			api.PacketListener().DestroyListener(uniqueID)
+		item, _ := api.Resources().Inventories().GetItemStack(0, 2)
+		if item.Stack.Count != 9 {
+			panic("SystemTestingBotClick: `ClickBlock` failed")
 		}
 	}
 

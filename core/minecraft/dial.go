@@ -25,7 +25,6 @@ import (
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol/login"
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol/packet"
-
 	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/google/uuid"
 )
@@ -187,7 +186,6 @@ func (d Dialer) DialContext(ctx context.Context, network string) (conn *Conn, au
 	if err != nil {
 		return nil, auth.AuthResponse{}, err
 	}
-
 	if d.ErrorLog == nil {
 		d.ErrorLog = log.New(os.Stderr, "", log.LstdFlags)
 	}
@@ -240,7 +238,7 @@ func (d Dialer) DialContext(ctx context.Context, network string) (conn *Conn, au
 	request = login.Encode(authResponse.ChainInfo, conn.clientData, key)
 	identityData, _, _, err := login.Parse(request)
 	if err != nil {
-		fmt.Printf("WARNING: Identity data parsing error: %w\n", err.(error))
+		fmt.Printf("WARNING: Identity data parsing error: %v\n", err)
 	}
 	// If we got the identity data from Minecraft auth, we need to make sure we set it in the Conn too, as
 	// we are not aware of the identity data ourselves yet.
@@ -256,7 +254,9 @@ func (d Dialer) DialContext(ctx context.Context, network string) (conn *Conn, au
 	_ = conn.Flush()
 
 	select {
-	case <-conn.close:
+	case <-ctx.Done():
+		return nil, auth.AuthResponse{}, conn.wrap(context.Cause(ctx), "dial")
+	case <-conn.ctx.Done():
 		return nil, auth.AuthResponse{}, conn.closeErr("dial")
 	case <-ctx.Done():
 		return nil, auth.AuthResponse{}, conn.wrap(ctx.Err(), "dial")
@@ -269,13 +269,13 @@ func (d Dialer) DialContext(ctx context.Context, network string) (conn *Conn, au
 		_ = conn.Flush()
 
 		select {
-		case <-conn.close:
+		case <-conn.ctx.Done():
 			return nil, auth.AuthResponse{}, conn.closeErr("dial")
 		case <-ctx.Done():
 			return nil, auth.AuthResponse{}, conn.wrap(ctx.Err(), "dial")
 		case <-c:
 			// We've connected successfully. We return the connection and no error.
-			return conn, authResponse, nil
+			return conn, auth.AuthResponse{}, nil
 		}
 	}
 }

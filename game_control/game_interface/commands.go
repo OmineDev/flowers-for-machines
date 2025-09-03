@@ -3,6 +3,7 @@ package game_interface
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
@@ -123,15 +124,20 @@ func (c *Commands) sendCommandWithResp(command string, origin uint32, timeout ti
 	isTimeOut bool,
 	err error,
 ) {
+	var terminalErr error
+
 	api := c.api
+	doOnce := new(sync.Once)
 	requestID := uuid.New()
 	channel := make(chan struct{})
 
 	api.Resources.Commands().SetCommandRequestCallback(
 		requestID,
-		func(p *packet.CommandOutput) {
-			resp = p
-			close(channel)
+		func(p *packet.CommandOutput, connCloseErr error) {
+			doOnce.Do(func() {
+				resp, terminalErr = p, connCloseErr
+				close(channel)
+			})
 		},
 	)
 
@@ -147,7 +153,6 @@ func (c *Commands) sendCommandWithResp(command string, origin uint32, timeout ti
 	if timeout == 0 {
 		timeout = DefaultTimeoutCommandRequest
 	}
-
 	if timeout > 0 {
 		timer := time.NewTimer(timeout)
 		defer timer.Stop()
@@ -160,8 +165,11 @@ func (c *Commands) sendCommandWithResp(command string, origin uint32, timeout ti
 			)
 		}
 	}
-
 	<-channel
+
+	if terminalErr != nil {
+		return nil, false, fmt.Errorf("sendCommandWithResp: %v", terminalErr)
+	}
 	return resp, false, nil
 }
 

@@ -6,31 +6,42 @@ import (
 
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol"
 	"github.com/OmineDev/flowers-for-machines/core/minecraft/protocol/packet"
+	"github.com/OmineDev/flowers-for-machines/game_control/game_interface"
 	"github.com/OmineDev/flowers-for-machines/nbt_assigner/nbt_console"
 )
 
 // TODO: Merge this to game interface
 func simpleStructureGetter(console *nbt_console.Console) (nbtMap map[string]any, err error) {
+	var (
+		api         *game_interface.GameInterface = console.API()
+		resp        *packet.StructureTemplateDataResponse
+		terminalErr error
+	)
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("simpleStructureGetter: %v", r)
 		}
 	}()
 
-	var resp *packet.StructureTemplateDataResponse
-	api := console.API()
-
 	doOnce := new(sync.Once)
 	channel := make(chan struct{})
-	uniqueID := api.PacketListener().ListenPacket(
+	uniqueID, err := api.PacketListener().ListenPacket(
 		[]uint32{packet.IDStructureTemplateDataResponse},
-		func(p packet.Packet) {
+		func(p packet.Packet, connCloseErr error) {
 			doOnce.Do(func() {
+				if connCloseErr != nil {
+					terminalErr = connCloseErr
+				} else {
+					resp = p.(*packet.StructureTemplateDataResponse)
+				}
 				close(channel)
-				resp = p.(*packet.StructureTemplateDataResponse)
 			})
 		},
 	)
+	if err != nil {
+		return nil, fmt.Errorf("simpleStructureGetter: %v", err)
+	}
+	defer api.PacketListener().DestroyListener(uniqueID)
 
 	err = api.Resources().WritePacket(
 		&packet.StructureTemplateDataRequest{
@@ -57,7 +68,9 @@ func simpleStructureGetter(console *nbt_console.Console) (nbtMap map[string]any,
 	}
 
 	<-channel
-	api.PacketListener().DestroyListener(uniqueID)
+	if terminalErr != nil {
+		return nil, fmt.Errorf("simpleStructureGetter: %v", terminalErr)
+	}
 
 	m := resp.StructureTemplate
 	m = m["structure"].(map[string]any)["palette"].(map[string]any)["default"].(map[string]any)
