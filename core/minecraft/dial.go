@@ -275,7 +275,7 @@ func (d Dialer) DialContext(ctx context.Context, network string) (conn *Conn, au
 			return nil, auth.AuthResponse{}, conn.wrap(ctx.Err(), "dial")
 		case <-c:
 			// We've connected successfully. We return the connection and no error.
-			return conn, auth.AuthResponse{}, nil
+			return conn, authResponse, nil
 		}
 	}
 }
