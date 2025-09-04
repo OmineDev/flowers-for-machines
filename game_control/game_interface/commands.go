@@ -140,6 +140,7 @@ func (c *Commands) sendCommandWithResp(command string, origin uint32, timeout ti
 			})
 		},
 	)
+	defer api.Resources.Commands().DeleteCommandRequestCallback(requestID)
 
 	err = api.WritePacket(
 		packCommandRequest(
