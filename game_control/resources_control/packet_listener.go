@@ -169,8 +169,8 @@ func (p *PacketListener) onPacket(pk packet.Packet) {
 	}
 
 	// Any packet listener
-	for _, listeners := range p.anyPacketListeners {
-		go listeners.callback(pk, nil)
+	for _, listener := range p.anyPacketListeners {
+		go listener.callback(pk, nil)
 	}
 
 	// Specific packet listener
@@ -185,8 +185,8 @@ func (p *PacketListener) handleConnClose(err error) {
 	defer p.mu.Unlock()
 
 	// Any packet listener
-	for _, listeners := range p.anyPacketListeners {
-		go listeners.callback(nil, err)
+	for _, listener := range p.anyPacketListeners {
+		go listener.callback(nil, err)
 	}
 
 	// Specific packet listener

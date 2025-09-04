@@ -186,7 +186,7 @@ func (c *ContainerManager) handleConnClose(err error) {
 		go c.closeCallback(false, err)
 	}
 
-	c.states = ContainerStatesHaveNotOpen
+	c.states = ContainerStatesConnClosed
 	c.openingData = nil
 	c.containerID = mapping.ContainerIDUnknown
 	c.openCallback = nil
