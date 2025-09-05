@@ -137,12 +137,18 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 
 	// Waiting bot to go to the target area
 	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("initConsole: Can not teleport to the target area (timeout)")
+		default:
+		}
+
 		uniqueID, err := api.StructureBackup().BackupOffset(
 			protocol.BlockPos{c.center[0] - 5, c.center[1], c.center[2] - 5},
 			protocol.BlockPos{10, 0, 10},
 		)
 		if err != nil {
-			return fmt.Errorf("initConsole: %v", err)
+			continue
 		}
 
 		resp, err := api.Commands().SendWSCommandWithResp(
@@ -156,12 +162,6 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 		}
 		if resp.SuccessCount > 0 {
 			break
-		}
-
-		select {
-		case <-timer.C:
-			return fmt.Errorf("initConsole: Can not teleport to the target area (timeout)")
-		default:
 		}
 	}
 
