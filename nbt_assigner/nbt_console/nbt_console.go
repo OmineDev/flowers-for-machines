@@ -85,7 +85,7 @@ func NewConsole(api *game_interface.GameInterface, dimensionID uint8, center pro
 // initConsole 初始化操作台。
 // 它是一个内部实现细节，不应被其他人所使用
 func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error {
-	api := c.api.Commands()
+	api := c.api
 
 	// Check center
 	deltaX := int(math.Abs(float64(center[0])))
@@ -110,21 +110,21 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 	}
 
 	// Change gamemode and hotbar slot
-	err := api.SendSettingsCommand("gamemode 1", true)
+	err := api.Commands().SendSettingsCommand("gamemode 1", true)
 	if err != nil {
 		return fmt.Errorf("initConsole: %v", err)
 	}
-	err = api.SendSettingsCommand("clear", true)
+	err = api.Commands().SendSettingsCommand("clear", true)
 	if err != nil {
 		return fmt.Errorf("initConsole: %v", err)
 	}
-	err = c.api.BotClick().ChangeSelectedHotbarSlot(c.currentHotBar)
+	err = api.BotClick().ChangeSelectedHotbarSlot(c.currentHotBar)
 	if err != nil {
 		return fmt.Errorf("initConsole: %v", err)
 	}
 
 	// Teleport to target area
-	err = api.SendSettingsCommand(
+	err = api.Commands().SendSettingsCommand(
 		fmt.Sprintf("execute in %s run tp %d %d %d", utils.DimensionNameByID(dimensionID), c.center[0], c.center[1], c.center[2]),
 		true,
 	)
@@ -137,16 +137,23 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 
 	// Waiting bot to go to the target area
 	for {
-		resp, err := api.SendWSCommandWithResp(
-			fmt.Sprintf(
-				"execute as @s at @s positioned %d ~ ~ positioned ~ 0 ~ positioned ~ ~ %d run testforblock ~ 320 ~ air",
-				c.center[0], c.center[2],
-			),
+		uniqueID, err := api.StructureBackup().BackupOffset(
+			protocol.BlockPos{c.center[0] - 5, c.center[1], c.center[2] - 5},
+			protocol.BlockPos{c.center[0] + 5, c.center[1], c.center[2] + 5},
 		)
 		if err != nil {
 			return fmt.Errorf("initConsole: %v", err)
 		}
 
+		resp, err := api.Commands().SendWSCommandWithResp(
+			fmt.Sprintf(
+				`structure delete "%v"`,
+				utils.MakeUUIDSafeString(uniqueID),
+			),
+		)
+		if err != nil {
+			return fmt.Errorf("initConsole: %v", err)
+		}
 		if resp.SuccessCount > 0 {
 			break
 		}
@@ -161,7 +168,7 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 	// Init console blocks
 	{
 		// Clean area frist
-		_, err = api.SendWSCommandWithResp(
+		_, err = api.Commands().SendWSCommandWithResp(
 			fmt.Sprintf(
 				"execute as @s at @s positioned %d ~ ~ positioned ~ %d ~ positioned ~ ~ %d run fill ~-5 ~-2 ~-5 ~5 ~2 ~5 air",
 				c.center[0], c.center[1], c.center[2],
@@ -171,7 +178,7 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 			return fmt.Errorf("initConsole: %v", err)
 		}
 		// Teleport again
-		err = api.SendSettingsCommand(
+		err = api.Commands().SendSettingsCommand(
 			fmt.Sprintf("execute in overworld run tp %d %d %d", c.center[0], c.center[1], c.center[2]),
 			true,
 		)
@@ -179,7 +186,7 @@ func (c *Console) initConsole(dimensionID uint8, center protocol.BlockPos) error
 			return fmt.Errorf("initConsole: %v", err)
 		}
 		// Filling floor blocks
-		_, err = api.SendWSCommandWithResp(
+		_, err = api.Commands().SendWSCommandWithResp(
 			fmt.Sprintf(
 				"execute as @s at @s positioned %d ~ ~ positioned ~ %d ~ positioned ~ ~ %d run fill ~-5 ~-1 ~-5 ~5 ~-1 ~5 %s",
 				c.center[0], c.center[1], c.center[2], BaseBackground,
