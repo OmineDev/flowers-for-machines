@@ -3,7 +3,7 @@ module github.com/OmineDev/flowers-for-machines
 go 1.24
 
 require (
-	github.com/TriM-Organization/bedrock-world-operator v1.3.1
+	github.com/TriM-Organization/bedrock-world-operator v1.4.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/google/uuid v1.6.0

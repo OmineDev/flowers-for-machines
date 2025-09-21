@@ -15,8 +15,8 @@ github.com/MarvinJWendt/testza v0.3.0/go.mod h1:eFcL4I0idjtIx8P9C6KkAuLgATNKpX4/
 github.com/MarvinJWendt/testza v0.4.2/go.mod h1:mSdhXiKH8sg/gQehJ63bINcCKp7RtYewEjXsvsVUPbE=
 github.com/MarvinJWendt/testza v0.5.2 h1:53KDo64C1z/h/d/stCYCPY69bt/OSwjq5KpFNwi+zB4=
 github.com/MarvinJWendt/testza v0.5.2/go.mod h1:xu53QFE5sCdjtMCKk8YMQ2MnymimEctc4n3EjyIYvEY=
-github.com/TriM-Organization/bedrock-world-operator v1.3.1 h1:N2HBZHB486agc8efagK+yKmAkXFOEhN1eTHczOCpZiA=
-github.com/TriM-Organization/bedrock-world-operator v1.3.1/go.mod h1:wYr/uqDgRP6W3o1y98Zr11jze5wtIMz/aC5vs1u8iU4=
+github.com/TriM-Organization/bedrock-world-operator v1.4.0 h1:3XCdg4h4MiRLHVit9a7wbFs9jVvEQrw4UUv1Z86hj8k=
+github.com/TriM-Organization/bedrock-world-operator v1.4.0/go.mod h1:o8KPtoPwyu6BaUilaNXzzLll6+bOixeWG2qWrZicZhc=
 github.com/atomicgo/cursor v0.0.1/go.mod h1:cBON2QmmrysudxNBFthvMtN32r3jxVRIvzkUiF/RuIk=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=
 github.com/bytedance/sonic v1.11.6/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
