@@ -159,7 +159,7 @@ func (r *Resources) handleItemStackResponse(p *packet.ItemStackResponse) {
 
 				slotLocation := SlotLocation{WindowID: windowID, SlotID: slotID}
 				if _, ok := itemRepeatChecker[slotLocation]; ok {
-					panic(fmt.Sprintf("handleItemStackResponse: The item at %#v was found duplicates (Should nerver happened)", slotLocation))
+					panic(fmt.Sprintf("handleItemStackResponse: The item at %#v was found duplicates (Should never happened)", slotLocation))
 				}
 				itemRepeatChecker[slotLocation] = true
 

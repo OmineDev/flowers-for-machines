@@ -105,7 +105,7 @@ func (c Console) FindNonAnvilAndNonLoom(includeCenter bool) (index int, offset p
 	}
 
 	if len(idxs) == 0 {
-		panic("FindNonAnvilAndNonLoom: Should nerver happened")
+		panic("FindNonAnvilAndNonLoom: Should never happened")
 	}
 
 	randIndex := rand.Intn(len(idxs))
@@ -142,7 +142,7 @@ func (c Console) FindSpaceToPlaceNewBlock(includeCenter bool) (
 
 	index, offset, block = c.FindNonAnvilAndNonLoom(includeCenter)
 	if block == nil {
-		panic("FindSpaceToPlaceNewBlock: Should nerver happened")
+		panic("FindSpaceToPlaceNewBlock: Should never happened")
 	}
 
 	return
@@ -186,7 +186,7 @@ func (c *Console) FindOrGenerateNewAnvil() (index int, err error) {
 
 	index, _, block = c.FindSpaceToPlaceNewBlock(false)
 	if block == nil {
-		panic("FindOrGenerateNewAnvil: Should nerver happened")
+		panic("FindOrGenerateNewAnvil: Should never happened")
 	}
 
 	nearBlock := c.NearBlockByIndex(index, protocol.BlockPos{0, -1, 0})
@@ -225,7 +225,7 @@ func (c *Console) FindOrGenerateNewLoom() (index int, err error) {
 
 	index, _, block = c.FindSpaceToPlaceNewBlock(false)
 	if block == nil {
-		panic("FindOrGenerateNewLoom: Should nerver happened")
+		panic("FindOrGenerateNewLoom: Should never happened")
 	}
 
 	loom := block_helper.LoomBlockHelper{}

@@ -52,7 +52,7 @@ func ParseItemNormal(
 	case mapping.SupportNBTItemTypeShield:
 		item = &Shield{DefaultItem: defaultItem}
 	default:
-		panic("ParseItemNormal: Should nerver happened")
+		panic("ParseItemNormal: Should never happened")
 	}
 
 	err = item.ParseNormal(nbtMap)
@@ -85,7 +85,7 @@ func ParseItemNetwork(itemStack protocol.ItemStack, itemName string) (item nbt_p
 	case mapping.SupportNBTItemTypeShield:
 		item = &Shield{DefaultItem: defaultItem}
 	default:
-		panic("ParseItemNetwork: Should nerver happened")
+		panic("ParseItemNetwork: Should never happened")
 	}
 
 	err = item.ParseNetwork(itemStack, itemName)

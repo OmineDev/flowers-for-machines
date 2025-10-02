@@ -130,7 +130,7 @@ func (b *Book) Make() (resultSlot map[uint64]resources_control.SlotID, err error
 		for index, book := range currentRound {
 			item, inventoryExisted := api.Resources().Inventories().GetItemStack(0, bookSlots[index])
 			if !inventoryExisted {
-				panic("Make: Should nerver happened")
+				panic("Make: Should never happened")
 			}
 
 			if item.Stack.NetworkID != int32(api.Resources().ConstantPacket().ItemByName(book.ItemName()).RuntimeID) {

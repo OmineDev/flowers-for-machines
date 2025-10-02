@@ -231,7 +231,7 @@ func (i *ItemStackTransaction) checkRenaming(
 		var containerInfo protocol.StackResponseContainerInfo
 
 		if len(allRequests[index]) == 0 {
-			panic("checkRenaming: Should nerver happened")
+			panic("checkRenaming: Should never happened")
 		}
 
 		request := allRequests[index][0]
@@ -241,14 +241,14 @@ func (i *ItemStackTransaction) checkRenaming(
 		}
 
 		if len(response.ContainerInfo) != 2 {
-			panic("checkRenaming: Should nerver happened")
+			panic("checkRenaming: Should never happened")
 		}
 
 		cid1 := response.ContainerInfo[0].ContainerID
 		cid2 := response.ContainerInfo[1].ContainerID
 		cid3 := byte(protocol.ContainerAnvilInput)
 		if !((cid1 == cid3 && cid2 != cid3) || (cid1 != cid3 && cid2 == cid3)) {
-			panic("checkRenaming: Should nerver happened")
+			panic("checkRenaming: Should never happened")
 		}
 
 		if cid1 != cid3 {
@@ -257,7 +257,7 @@ func (i *ItemStackTransaction) checkRenaming(
 			containerInfo = response.ContainerInfo[1]
 		}
 		if len(containerInfo.SlotInfo) != 1 {
-			panic("checkRenaming: Should nerver happened")
+			panic("checkRenaming: Should never happened")
 		}
 
 		if newName := containerInfo.SlotInfo[0].CustomName; newName != renaming.NewName {

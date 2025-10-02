@@ -322,8 +322,8 @@ func (i *ItemCopy) stepGetAllThingBack() error {
 			}
 
 			if extraCount != 0 {
-				// This should nerver happened, or there happened some underlying internal problems
-				panic("stepMergeToContainer: Should nerver happened")
+				// This should never happened, or there happened some underlying internal problems
+				panic("stepMergeToContainer: Should never happened")
 			}
 
 			_ = transaction.MoveToInventory(
@@ -471,7 +471,7 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 				// It is impossible for a child to meet child.Count < haveCount,
 				// so we panic for those we are child.
 				if index != 0 {
-					panic("stepMergeToContainer: Should nerver happened")
+					panic("stepMergeToContainer: Should never happened")
 				}
 				unusedContainerCount = haveCount - child.Count
 				continue
@@ -539,8 +539,8 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 			haveCount = i.container[child.Slot].Count
 			moveCount = child.Count - haveCount
 			if child.Count < haveCount {
-				// This should nerver happened, or there happened some underlying internal problems
-				panic("stepMergeToContainer: Should nerver happened")
+				// This should never happened, or there happened some underlying internal problems
+				panic("stepMergeToContainer: Should never happened")
 			}
 			if moveCount == 0 {
 				continue
@@ -566,8 +566,8 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 				haveCount = i.container[child.Slot].Count
 				moveCount = child.Count - haveCount
 				if child.Count < haveCount {
-					// This should nerver happened, or there happened some underlying internal problems
-					panic("stepMergeToContainer: Should nerver happened")
+					// This should never happened, or there happened some underlying internal problems
+					panic("stepMergeToContainer: Should never happened")
 				}
 				if moveCount == 0 {
 					break
@@ -598,8 +598,8 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 		}
 		for _, child := range group.Child {
 			if child.Count < i.container[child.Slot].Count {
-				// This should nerver happened, or there happened some underlying internal problems
-				panic("stepMergeToContainer: Should nerver happened")
+				// This should never happened, or there happened some underlying internal problems
+				panic("stepMergeToContainer: Should never happened")
 			}
 			if child.Count > i.container[child.Slot].Count {
 				return false, nil
@@ -622,8 +622,8 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 	for itemType, group := range i.ItemGroups {
 		count := i.container[group.Parent.Slot].Count
 		if group.Parent.Count > count {
-			// This should nerver happened, or there happened some underlying internal problems
-			panic("stepMergeToContainer: Should nerver happened")
+			// This should never happened, or there happened some underlying internal problems
+			panic("stepMergeToContainer: Should never happened")
 		}
 		if group.Parent.Count == count {
 			continue
@@ -632,8 +632,8 @@ func (i *ItemCopy) stepMergeToContainer() (canStop bool, err error) {
 		cleanCount := count - group.Parent.Count
 		airSlot, found := i.searchAirFromInventory()
 		if !found {
-			// This should nerver happened, or there happened some underlying internal problems
-			panic("stepMergeToContainer: Should nerver happened")
+			// This should never happened, or there happened some underlying internal problems
+			panic("stepMergeToContainer: Should never happened")
 		}
 		_ = transaction.MoveToInventory(group.Parent.Slot, airSlot, cleanCount)
 

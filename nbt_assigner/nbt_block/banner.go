@@ -68,7 +68,7 @@ func (b *Banner) Make() error {
 			},
 		)
 		if len(bannerItem) != 1 {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 
 		// 制作旗帜物品
@@ -77,7 +77,7 @@ func (b *Banner) Make() error {
 			return fmt.Errorf("Make: %v", err)
 		}
 		if len(resultSlot) != 1 {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 
 		// 确定旗帜所在的槽位

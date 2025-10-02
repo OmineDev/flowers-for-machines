@@ -114,7 +114,7 @@ func (c *Container) Parse(nbtMap map[string]any) error {
 
 	key, ok := mapping.ContainerStorageKey[c.BlockName()]
 	if !ok {
-		panic("Parse: Should nerver happened")
+		panic("Parse: Should never happened")
 	}
 
 	iMap, ok := nbtMap[key].(map[string]any)

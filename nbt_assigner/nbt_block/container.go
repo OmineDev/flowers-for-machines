@@ -71,14 +71,14 @@ func (c *Container) makeNormal() error {
 			return fmt.Errorf("makeNormal: %v", err)
 		}
 		if hit && !isSetHashHit {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		// 如果我们命中了集合哈希校验和
 		if isSetHashHit {
 			container, ok := structure.Block.(*nbt_parser_block.Container)
 			if !ok {
-				panic("makeNormal: Should nerver happened")
+				panic("makeNormal: Should never happened")
 			}
 
 			err = nbt_assigner_utils.ItemTransition(c.console, c.cache, *container, c.data)
@@ -144,7 +144,7 @@ func (c *Container) makeNormal() error {
 
 		wantContainer, ok := underlying.Block.SubBlock.(*nbt_parser_block.Container)
 		if !ok {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		structure, _, partHit, err := c.cache.NBTBlockCache().LoadCache(nbt_hash.CompletelyHashNumber{
@@ -155,12 +155,12 @@ func (c *Container) makeNormal() error {
 			return fmt.Errorf("makeNormal: %v", err)
 		}
 		if !partHit {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		container, ok := structure.Block.(*nbt_parser_block.Container)
 		if !ok {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		err = nbt_assigner_utils.ItemTransition(c.console, c.cache, *container, *wantContainer)
@@ -243,7 +243,7 @@ func (c *Container) makeNormal() error {
 					SetHashNumber: nbt_hash.ContainerSetHash(subBlock),
 				})
 				if !hit || partHit {
-					panic("makeNormal: Should nerver happened")
+					panic("makeNormal: Should never happened")
 				}
 
 				newWaiter := make(chan struct{})
@@ -299,7 +299,7 @@ func (c *Container) makeNormal() error {
 		// 现在所有子方块都被 Pick Block 到背包了
 		allItemStack, inventoryExisted := api.Resources().Inventories().GetAllItemStack(0)
 		if !inventoryExisted {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		// 打开操作台中心处容器

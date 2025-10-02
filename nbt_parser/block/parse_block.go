@@ -73,7 +73,7 @@ func ParseBlock(
 	case mapping.SupportNBTBlockTypeCrafter:
 		block = &Crafter{DefaultBlock: defaultBlock}
 	default:
-		panic("ParseNBTBlock: Should nerver happened")
+		panic("ParseNBTBlock: Should never happened")
 	}
 
 	err = block.Parse(blockNBT)

@@ -80,14 +80,14 @@ func (l *Lectern) Make() error {
 	// 制作成书
 	methods := nbt_assigner_interface.MakeNBTItemMethod(l.console, l.cache, l.data.NBT.Book)
 	if len(methods) != 1 {
-		panic("Make: Should nerver happened")
+		panic("Make: Should never happened")
 	}
 	resultSlot, err := methods[0].Make()
 	if err != nil {
 		return fmt.Errorf("Make: %v", err)
 	}
 	if len(resultSlot) != 1 {
-		panic("Make: Should nerver happened")
+		panic("Make: Should never happened")
 	}
 	for _, slotID := range resultSlot {
 		targetSlot = slotID
@@ -99,7 +99,7 @@ func (l *Lectern) Make() error {
 		defaultItem := underlying.(*nbt_parser_item.DefaultItem)
 
 		if len(defaultItem.Enhance.DisplayName) == 0 {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 
 		index, err := l.console.FindOrGenerateNewAnvil()

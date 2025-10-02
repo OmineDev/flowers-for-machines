@@ -78,7 +78,7 @@ func ParseItemBlock(
 	}
 	blockType, ok := mapping.SupportBlocksPool[blockName]
 	if !ok {
-		panic("ParseItemBlock: Should nerver happened")
+		panic("ParseItemBlock: Should never happened")
 	}
 	if !mapping.SubBlocksPool[blockType] {
 		return
@@ -101,12 +101,12 @@ func ParseItemBlock(
 	} else {
 		rid, found := block.StateToRuntimeID(blockName, map[string]any{})
 		if !found {
-			panic("ParseItemBlock: Should nerver happened")
+			panic("ParseItemBlock: Should never happened")
 		}
 
 		name, states, found := block.RuntimeIDToState(rid)
 		if !found {
-			panic("ParseItemBlock: Should nerver happened")
+			panic("ParseItemBlock: Should never happened")
 		}
 
 		result.Name = name
@@ -141,7 +141,7 @@ func ParseItemBlockNetwork(itemName string, item protocol.ItemStack) (result Ite
 	}
 	blockType, ok := mapping.SupportBlocksPool[blockName]
 	if !ok {
-		panic("ParseItemBlockNetwork: Should nerver happened")
+		panic("ParseItemBlockNetwork: Should never happened")
 	}
 	if !mapping.SubBlocksPool[blockType] {
 		return
@@ -151,19 +151,19 @@ func ParseItemBlockNetwork(itemName string, item protocol.ItemStack) (result Ite
 	if item.BlockRuntimeID != 0 {
 		name, states, found := block.RuntimeIDToState(uint32(item.BlockRuntimeID))
 		if !found {
-			panic("ParseItemBlockNetwork: Should nerver happened")
+			panic("ParseItemBlockNetwork: Should never happened")
 		}
 		result.Name = name
 		result.States = states
 	} else {
 		rid, found := block.StateToRuntimeID(blockName, map[string]any{})
 		if !found {
-			panic("ParseItemBlockNetwork: Should nerver happened")
+			panic("ParseItemBlockNetwork: Should never happened")
 		}
 
 		name, states, found := block.RuntimeIDToState(rid)
 		if !found {
-			panic("ParseItemBlockNetwork: Should nerver happened")
+			panic("ParseItemBlockNetwork: Should never happened")
 		}
 
 		result.Name = name

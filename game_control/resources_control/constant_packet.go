@@ -180,7 +180,7 @@ func (c *ConstantPacket) onAvailableCommands(p *packet.AvailableCommands) {
 		return
 	}
 
-	panic("onAvailableCommands: Should nerver happened")
+	panic("onAvailableCommands: Should never happened")
 }
 
 // ------------------------- Trim Recipe Network ID -------------------------

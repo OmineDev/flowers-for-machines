@@ -125,7 +125,7 @@ func (j *JukeBox) Make() error {
 			return fmt.Errorf("Make: %v", err)
 		}
 	} else {
-		panic("Make: Should nerver happened")
+		panic("Make: Should never happened")
 	}
 
 	// 传送到操作台中心

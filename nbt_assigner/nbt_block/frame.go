@@ -51,7 +51,7 @@ func (f *Frame) processComplex() (canUseCommand bool, resultSlot resources_contr
 			return false, 0, fmt.Errorf("processComplex: %v", err)
 		}
 		if !hit || partHit {
-			panic("processComplex: Should nerver happened")
+			panic("processComplex: Should never happened")
 		}
 
 		_, err = f.console.API().Commands().SendWSCommandWithResp("clear")
@@ -79,14 +79,14 @@ func (f *Frame) processComplex() (canUseCommand bool, resultSlot resources_contr
 	// 复杂 NBT 物品制作
 	methods := nbt_assigner_interface.MakeNBTItemMethod(f.console, f.cache, f.data.NBT.Item)
 	if len(methods) != 1 {
-		panic("Make: Should nerver happened")
+		panic("Make: Should never happened")
 	}
 	resultSlotMapping, err := methods[0].Make()
 	if err != nil {
 		return false, 0, fmt.Errorf("processComplex: %v", err)
 	}
 	if len(resultSlotMapping) != 1 {
-		panic("Make: Should nerver happened")
+		panic("Make: Should never happened")
 	}
 
 	// 将复杂 NBT 物品移动到快捷栏

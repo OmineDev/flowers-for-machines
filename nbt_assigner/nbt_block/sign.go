@@ -137,7 +137,7 @@ func (s *Sign) Make() error {
 
 		dyeName, ok := mapping.RGBToDyeItemName[color]
 		if !ok {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 		err = s.replaceitem(dyeName, true)
 		if err != nil {

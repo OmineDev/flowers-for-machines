@@ -222,7 +222,7 @@ func (b *Banner) makeNormal(
 	for _, value := range colorToUse {
 		dyeName, ok := mapping.BannerColorToDyeName[value]
 		if !ok {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		err := api.Replaceitem().ReplaceitemInInventory(
@@ -248,7 +248,7 @@ func (b *Banner) makeNormal(
 	for _, value := range patternToUse {
 		patternName, ok := mapping.BannerPatternToItemName[value]
 		if !ok {
-			panic("makeNormal: Should nerver happened")
+			panic("makeNormal: Should never happened")
 		}
 
 		err := api.Replaceitem().ReplaceitemInInventory(
@@ -353,11 +353,11 @@ func (b *Banner) makeNormal(
 
 		bannerWeGet, inventoryExisted := api.Resources().Inventories().GetItemStack(0, bannerSlot)
 		if !inventoryExisted {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 
 		if bannerWeGet.Stack.NetworkID != int32(api.Resources().ConstantPacket().ItemByName("minecraft:banner").RuntimeID) {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 		newBanner, err := nbt_parser_interface.ParseItemNetwork(bannerWeGet.Stack, "minecraft:banner")
 		if err != nil {
@@ -365,7 +365,7 @@ func (b *Banner) makeNormal(
 		}
 
 		if nbt_hash.NBTItemNBTHash(newBanner) != nbt_hash.NBTItemNBTHash(&banner) {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 	}
 
@@ -413,7 +413,7 @@ func (b *Banner) makeOminous() (resultSlot map[uint64]resources_control.SlotID, 
 		}
 	}
 	if cini == 0 {
-		panic("makeOminous: Should nerver happened")
+		panic("makeOminous: Should never happened")
 	}
 
 	success, _, _, err = api.ItemStackOperation().OpenTransaction().

@@ -251,11 +251,11 @@ func (s *Shield) Make() (resultSlot map[uint64]resources_control.SlotID, err err
 
 		shieldWeGet, inventoryExisted := api.Resources().Inventories().GetItemStack(0, shieldSlot)
 		if !inventoryExisted {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 
 		if shieldWeGet.Stack.NetworkID != int32(api.Resources().ConstantPacket().ItemByName("minecraft:shield").RuntimeID) {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 		newShield, err := nbt_parser_interface.ParseItemNetwork(shieldWeGet.Stack, "minecraft:shield")
 		if err != nil {
@@ -263,7 +263,7 @@ func (s *Shield) Make() (resultSlot map[uint64]resources_control.SlotID, err err
 		}
 
 		if nbt_hash.NBTItemNBTHash(newShield) != nbt_hash.NBTItemNBTHash(&shield) {
-			panic("Make: Should nerver happened")
+			panic("Make: Should never happened")
 		}
 	}
 
